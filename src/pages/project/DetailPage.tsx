@@ -21,6 +21,16 @@ import {
   Copy,
   CheckCircle2,
   TrendingUp,
+  Zap,
+  Users,
+  Gift,
+  ArrowLeftRight,
+  Lock,
+  Flag,
+  FileText,
+  Tag,
+  BarChart2,
+  Layers,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -47,6 +57,18 @@ const intervalLimit: Record<Interval, number> = {
 type SubTab = 'deal' | 'pond';
 type MainTab = 'first' | 'market';
 
+const STATUS_META: Record<string, { label: string; dot: string }> = {
+  curve_active:     { label: 'Casting',    dot: 'bg-success-500' },
+  on_chain:         { label: 'Coming',     dot: 'bg-info-500' },
+  migrated:         { label: 'Meteora',    dot: 'bg-accent-500' },
+  curve_completed:  { label: 'Completed',  dot: 'bg-warning-400' },
+  migrating:        { label: 'Migrating',  dot: 'bg-warning-400' },
+  pending_review:   { label: 'In Review',  dot: 'bg-warning-400' },
+  approved:         { label: 'Approved',   dot: 'bg-info-500' },
+  rejected:         { label: 'Rejected',   dot: 'bg-danger-500' },
+  draft:            { label: 'Draft',      dot: 'bg-white/30' },
+};
+
 export default function DetailPage() {
   const { id } = useParams();
   const nav = useNavigate();
@@ -54,6 +76,7 @@ export default function DetailPage() {
   const locale = i18n.language;
   const logged = useUserStore((s) => s.is_logged_in());
   const isCreator = useUserStore((s) => s.is_creator_of(Number(id)));
+  const positions = useUserStore((s) => s.positions ?? {});
   const setSheet = useUIStore((s) => s.setBottomSheet);
 
   const [mainTab, setMainTab] = useState<MainTab>('first');
@@ -99,6 +122,8 @@ export default function DetailPage() {
       ? (Number(p.total_sold_raw) * Number(p.current_price)) / 1e12
       : 0;
 
+  const userPosition = p ? (positions[p.id]?.token_balance_raw ?? null) : null;
+
   function copyLink() {
     void navigator.clipboard.writeText(`https://mirror.fan/project/${id ?? ''}`).then(() => {
       setCopied(true);
@@ -116,50 +141,48 @@ export default function DetailPage() {
   if (isPending || !p) {
     return (
       <AppShell hideTab>
-        <div className="flex flex-col gap-3 p-3">
-          <Skeleton className="h-[180px] w-full rounded-none" />
-          <Skeleton className="h-20 w-full rounded-2xl" />
-          <Skeleton className="h-32 w-full rounded-2xl" />
+        <div className="animate-pulse">
+          <Skeleton className="h-[240px] w-full rounded-none" />
+          <div className="flex flex-col gap-3 p-3">
+            <Skeleton className="h-16 w-full rounded-2xl" />
+            <Skeleton className="h-24 w-full rounded-2xl" />
+            <Skeleton className="h-32 w-full rounded-2xl" />
+          </div>
         </div>
       </AppShell>
     );
   }
 
-  const tradeDisabledReason = p.status === 'migrated'
-    ? 'Token migrated to Meteora — use Market tab'
-    : p.status === 'on_chain'
-      ? 'Trading starts soon'
-      : 'Trading not available';
+  const statusMeta = STATUS_META[p.status] ?? { label: p.status, dot: 'bg-white/20' };
+  const tradeDisabledReason =
+    p.status === 'migrated'
+      ? 'Token migrated to Meteora — use Market tab'
+      : p.status === 'on_chain'
+        ? 'Trading starts soon'
+        : 'Trading not available';
 
   const buySellFooter = mainTab === 'first' ? (
     <div
-      className="absolute inset-x-0 bottom-0 z-20 bg-canvas px-3 pt-2.5"
-      style={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom, 0px))' }}
+      className="relative z-20 bg-canvas px-3 pt-2"
+      style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}
     >
-      {/* fade edge */}
-      <div className="pointer-events-none absolute inset-x-0 -top-8 h-8 bg-gradient-to-b from-transparent to-canvas" />
-      {/* Price ticker pill */}
-      <div className="mb-2.5 flex items-center justify-center gap-1.5">
-        <span className="text-[11px] tabular-nums text-text-secondary">
-          ${formatTokenFromRaw(price, locale, 4)}
-        </span>
-        {change !== 0 ? (
-          <span
-            className={cn(
-              'rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums',
-              changePositive
-                ? 'bg-success-500/15 text-success-400'
-                : 'bg-danger-500/15 text-danger-400',
-            )}
-          >
+      <div className="pointer-events-none absolute inset-x-0 -top-10 h-10 bg-gradient-to-b from-transparent to-canvas" />
+      {/* Price + status row */}
+      <div className="mb-2 flex items-center justify-center gap-2">
+        <span className="text-sm font-bold tabular-nums">${formatTokenFromRaw(price, locale, 4)}</span>
+        {change !== 0 && (
+          <span className={cn(
+            'rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums',
+            changePositive ? 'bg-success-500/15 text-success-400' : 'bg-danger-500/15 text-danger-400',
+          )}>
             {changeStr}
           </span>
-        ) : null}
-        {!canTrade ? (
+        )}
+        {!canTrade && (
           <span className="rounded-full bg-white/8 px-2 py-0.5 text-[10px] text-text-secondary">
             {tradeDisabledReason}
           </span>
-        ) : null}
+        )}
       </div>
       <div className="flex gap-2.5">
         <button
@@ -167,30 +190,26 @@ export default function DetailPage() {
           disabled={!canTrade}
           onClick={() => openTrade('buy')}
           className={cn(
-            'relative flex flex-1 flex-col items-center justify-center overflow-hidden rounded-2xl py-3.5 transition-all active:scale-[0.97]',
-            canTrade
-              ? 'bg-success-500 text-white shadow-lg shadow-success-500/30'
-              : 'bg-white/8 text-text-secondary',
+            'relative flex flex-1 flex-col items-center justify-center overflow-hidden rounded-2xl py-3 transition-all active:scale-[0.97]',
+            canTrade ? 'bg-success-500 shadow-lg shadow-success-500/25 text-white' : 'bg-white/8 text-text-secondary',
           )}
         >
-          {canTrade ? <span className="absolute inset-0 bg-gradient-to-br from-white/15 to-transparent" /> : null}
+          {canTrade && <span className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />}
           <span className="relative text-[15px] font-bold tracking-wide">{t('project.buy')}</span>
-          {canTrade ? <span className="relative mt-0.5 text-[10px] font-normal text-white/60">做多</span> : null}
+          {canTrade && <span className="relative mt-0.5 text-[10px] font-normal opacity-70">做多</span>}
         </button>
         <button
           type="button"
           disabled={!canTrade}
           onClick={() => openTrade('sell')}
           className={cn(
-            'relative flex flex-1 flex-col items-center justify-center overflow-hidden rounded-2xl py-3.5 transition-all active:scale-[0.97]',
-            canTrade
-              ? 'bg-warning-500 text-white shadow-lg shadow-warning-500/30'
-              : 'bg-white/8 text-text-secondary',
+            'relative flex flex-1 flex-col items-center justify-center overflow-hidden rounded-2xl py-3 transition-all active:scale-[0.97]',
+            canTrade ? 'bg-warning-500 shadow-lg shadow-warning-500/25 text-white' : 'bg-white/8 text-text-secondary',
           )}
         >
-          {canTrade ? <span className="absolute inset-0 bg-gradient-to-br from-white/15 to-transparent" /> : null}
+          {canTrade && <span className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />}
           <span className="relative text-[15px] font-bold tracking-wide">{t('project.sell')}</span>
-          {canTrade ? <span className="relative mt-0.5 text-[10px] font-normal text-white/60">做空</span> : null}
+          {canTrade && <span className="relative mt-0.5 text-[10px] font-normal opacity-70">做空</span>}
         </button>
       </div>
     </div>
@@ -208,341 +227,413 @@ export default function DetailPage() {
         />
       ) : null}
 
-      {/* ── Top nav bar ── */}
-      <div className="sticky top-0 z-10 flex h-12 items-center gap-2 bg-canvas/95 px-2 backdrop-blur">
-          <button
-            type="button"
-            className="rounded-lg p-2 text-text-secondary hover:bg-white/5"
-            onClick={() => nav(-1)}
-          >
-            <ChevronLeft className="size-5" />
-          </button>
-          <h1 className="flex-1 truncate text-base font-semibold">{p.name}</h1>
-          {/* Main tab switcher */}
-          <div className="flex rounded-xl bg-white/8 p-0.5">
-            {(['first', 'market'] as const).map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => setMainTab(tab)}
-                className={cn(
-                  'rounded-lg px-3 py-1 text-xs font-semibold transition-all',
-                  mainTab === tab
-                    ? 'bg-white/15 text-text-primary shadow'
-                    : 'text-text-secondary hover:text-text-primary',
-                )}
-              >
-                {tab === 'first' ? 'The First' : 'Market'}
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            className="rounded-lg p-2 text-text-secondary hover:bg-white/5"
-            onClick={copyLink}
-          >
-            {copied ? (
-              <CheckCircle2 className="size-4 text-success-500" />
-            ) : (
-              <Share2 className="size-4" />
-            )}
-          </button>
+      {/* ── Sticky top bar ── */}
+      <div className="sticky top-0 z-10 flex h-12 items-center gap-2 bg-canvas/90 px-2 backdrop-blur-md">
+        <button
+          type="button"
+          className="rounded-lg p-2 text-text-secondary hover:bg-white/5"
+          onClick={() => nav(-1)}
+        >
+          <ChevronLeft className="size-5" />
+        </button>
+        <h1 className="flex-1 truncate text-sm font-semibold">{p.name}</h1>
+        {/* Main tab switcher */}
+        <div className="flex rounded-full bg-white/8 p-0.5">
+          {(['first', 'market'] as const).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setMainTab(tab)}
+              className={cn(
+                'rounded-full px-3 py-1 text-[11px] font-semibold transition-all',
+                mainTab === tab
+                  ? 'bg-white/20 text-text-primary shadow'
+                  : 'text-text-secondary hover:text-text-primary',
+              )}
+            >
+              {tab === 'first' ? 'The First' : 'Market'}
+            </button>
+          ))}
         </div>
+        <button
+          type="button"
+          className="rounded-lg p-2 text-text-secondary hover:bg-white/5"
+          onClick={copyLink}
+        >
+          {copied ? <CheckCircle2 className="size-4 text-success-500" /> : <Share2 className="size-4" />}
+        </button>
+      </div>
 
-        {/* ── Scrollable content ── */}
-        {/* bottom padding leaves room for the fixed BUY/SELL bar (~120px) */}
-        <div className={mainTab === 'first' ? 'pb-[140px]' : 'pb-4'}>
-          {mainTab === 'market' ? (
-            <MarketView p={p} t={t} />
-          ) : (
-            <>
-              {/* Hero image */}
-              <div className="relative h-[180px] shrink-0 overflow-hidden">
-                <img
-                  src={p.cover_image_url || `https://picsum.photos/seed/${p.id}/600/180`}
-                  alt=""
-                  className="h-full w-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-canvas/95" />
-                {/* Overlaid info */}
-                <div className="absolute bottom-0 left-0 right-0 flex items-end justify-between px-4 pb-3">
+      {/* ── Scrollable content ── */}
+      <div className={mainTab === 'first' ? 'pb-[148px]' : 'pb-4'}>
+        {mainTab === 'market' ? (
+          <MarketView p={p} t={t} />
+        ) : (
+          <>
+            {/* ── Hero ── */}
+            <div className="relative h-[240px] shrink-0 overflow-hidden">
+              <img
+                src={p.cover_image_url || `https://picsum.photos/seed/${p.id}/600/240`}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+              {/* layered gradient: dark at top + strong dark at bottom */}
+              <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/10 to-canvas" />
+
+              {/* Top-left: status badge */}
+              <div className="absolute left-4 top-4 flex items-center gap-1.5">
+                <span className={cn('size-2 rounded-full', statusMeta.dot)} />
+                <span className="rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+                  {statusMeta.label}
+                </span>
+                {isCreator && (
+                  <span className="rounded-full bg-success-500/80 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur-sm">
+                    Creator
+                  </span>
+                )}
+              </div>
+
+              {/* Top-right: airdrop countdown */}
+              {p.airdrop_phase?.end_at ? (
+                <div className="absolute right-4 top-4 text-right">
+                  <p className="text-[9px] text-white/60">空投倒计时</p>
+                  <CountdownBadge endAt={p.airdrop_phase.end_at} />
+                </div>
+              ) : null}
+
+              {/* Bottom: name + symbol + price */}
+              <div className="absolute inset-x-0 bottom-0 px-4 pb-4">
+                <div className="flex items-end justify-between">
                   <div>
-                    <div className="flex items-center gap-2">
-                      <span className="rounded-full bg-accent-gradient px-2 py-0.5 text-[9px] font-bold text-white">
+                    <div className="mb-1 flex items-center gap-1.5">
+                      <span className="rounded-full bg-accent-gradient px-2 py-0.5 text-[9px] font-bold uppercase text-white">
                         RWA
                       </span>
-                      {isCreator ? (
-                        <span className="rounded-full bg-success-500 px-2 py-0.5 text-[9px] font-bold text-white">
-                          Creator
-                        </span>
-                      ) : null}
+                      <span className="font-mono text-[11px] text-white/60">{p.symbol}</span>
                     </div>
-                    <p className="mt-0.5 font-mono text-[10px] text-white/60">{p.symbol}</p>
-                  </div>
-                  {p.airdrop_phase?.end_at ? (
-                    <div className="text-right">
-                      <p className="text-[9px] text-white/50">{t('home.countdown')}</p>
-                      <CountdownBadge endAt={p.airdrop_phase.end_at} />
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-
-              {/* Price + stats strip */}
-              <div className="px-4 pt-3">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold tabular-nums">
-                    ${formatTokenFromRaw(price, locale, 4)}
-                  </span>
-                  {change !== 0 ? (
-                    <span
-                      className={cn(
-                        'text-sm font-semibold tabular-nums',
-                        changePositive ? 'text-success-500' : 'text-danger-500',
-                      )}
-                    >
-                      {changeStr}
-                    </span>
-                  ) : null}
-                </div>
-                {/* Stats row */}
-                <div className="mt-2 grid grid-cols-3 text-[11px]">
-                  <div>
-                    <p className="text-text-secondary">24h 买入</p>
-                    <p className="tabular-nums font-medium">
-                      {formatUsdtFromRaw(p.volume_24h_raw ?? '0', locale)}
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-text-secondary">市值</p>
-                    <p className="tabular-nums font-medium">
-                      {mktCap > 0
-                        ? new Intl.NumberFormat(locale, {
-                            style: 'currency',
-                            currency: 'USD',
-                            notation: 'compact',
-                            maximumFractionDigits: 2,
-                          }).format(mktCap)
-                        : '—'}
-                    </p>
+                    <h2 className="text-xl font-bold leading-tight text-white drop-shadow">{p.name}</h2>
                   </div>
                   <div className="text-right">
-                    <p className="text-text-secondary">持有者</p>
-                    <p className="tabular-nums font-medium">
-                      {(p.holder_count ?? 0).toLocaleString(locale)}
+                    <p className="text-2xl font-bold tabular-nums text-white drop-shadow">
+                      ${formatTokenFromRaw(price, locale, 4)}
                     </p>
+                    {change !== 0 && (
+                      <span className={cn(
+                        'mt-0.5 inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums',
+                        changePositive ? 'bg-success-500/25 text-success-400' : 'bg-danger-500/25 text-danger-400',
+                      )}>
+                        {changeStr}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
+            </div>
 
-              {/* Progress bar */}
-              <div className="mt-3 px-4">
-                <div className="h-2 overflow-hidden rounded-full bg-white/10">
-                  <div
-                    className="h-full bg-accent-gradient transition-all"
-                    style={{ width: `${Math.min(100, (p.progress_bps ?? 0) / 100)}%` }}
-                  />
-                </div>
-                <div className="mt-1 flex items-center justify-between text-[10px]">
-                  <span className="text-text-secondary tabular-nums">
-                    {formatPercentFromBps(p.progress_bps ?? 0, locale)} {t('project.progress')}
-                  </span>
-                  <button
-                    type="button"
-                    className="text-accent-500 underline-offset-2 hover:underline"
-                    onClick={() => nav(`/project/${id}/milestones`)}
-                  >
-                    {t('project.milestones')} →
-                  </button>
-                </div>
+            {/* ── Stat strip ── */}
+            <div className="grid grid-cols-3 gap-0 border-b border-white/8">
+              <StatCell label="24h 买入" value={formatUsdtFromRaw(p.volume_24h_raw ?? '0', locale)} />
+              <StatCell
+                label="市值"
+                value={
+                  mktCap > 0
+                    ? new Intl.NumberFormat(locale, {
+                        style: 'currency',
+                        currency: 'USD',
+                        notation: 'compact',
+                        maximumFractionDigits: 2,
+                      }).format(mktCap)
+                    : '—'
+                }
+                center
+              />
+              <StatCell label="持有者" value={(p.holder_count ?? 0).toLocaleString(locale)} right />
+            </div>
+
+            {/* ── Progress bar ── */}
+            <div className="px-4 py-3">
+              <div className="mb-1.5 flex items-center justify-between text-[10px]">
+                <span className="font-medium text-text-secondary">{t('project.progress')}</span>
+                <button
+                  type="button"
+                  className="flex items-center gap-1 text-accent-400 hover:underline"
+                  onClick={() => nav(`/project/${id}/milestones`)}
+                >
+                  <Flag className="size-2.5" />
+                  {t('project.milestones')}
+                </button>
               </div>
-
-              {/* RWA Info — always expanded */}
-              <div className="mx-3 mt-3 rounded-2xl bg-surface p-4">
-                <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-accent-400">
-                  RWA Info
-                </p>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs">
-                  <InfoField
-                    label="收益权比例"
-                    value={formatPercentFromBps(
-                      p.revenue_rights_percent_bps ?? p.fundraising_fraction_bps ?? 0,
-                      locale,
-                    )}
-                  />
-                  <InfoField
-                    label="公允估值"
-                    value={formatUsdtFromRaw(p.ip_revenue_rights_valuation_micro_usdt, locale)}
-                  />
-                  <InfoField
-                    label="融资目标"
-                    value={formatUsdtFromRaw(p.target_financing_micro_usdt, locale)}
-                  />
-                  <InfoField
-                    label="已募集"
-                    value={
-                      p.total_sold_raw && Number(p.total_sold_raw) > 0
-                        ? `${formatTokenFromRaw(p.total_sold_raw, locale, 0)} ${p.symbol}`
-                        : '—'
-                    }
-                  />
-                  <InfoField
-                    label="保证金"
-                    value={
-                      p.deposit_status === 'paid'
-                        ? '✓ 已缴'
-                        : p.deposit_status === 'unpaid'
-                          ? '✗ 未缴'
-                          : (p.deposit_status ?? '—')
-                    }
-                    valueClass={
-                      p.deposit_status === 'paid'
-                        ? 'text-success-500'
-                        : p.deposit_status === 'unpaid'
-                          ? 'text-danger-500'
-                          : ''
-                    }
-                  />
-                  <InfoField label="作品类型" value={p.work_type ?? '—'} />
-                </div>
+              <div className="h-2.5 overflow-hidden rounded-full bg-white/8">
+                <div
+                  className="h-full rounded-full bg-accent-gradient transition-all"
+                  style={{ width: `${Math.min(100, (p.progress_bps ?? 0) / 100)}%` }}
+                />
               </div>
+              <p className="mt-1 text-[11px] font-semibold tabular-nums text-accent-400">
+                {formatPercentFromBps(p.progress_bps ?? 0, locale)} {t('project.progress')}
+              </p>
+            </div>
 
-              {/* Secondary nav strip */}
-              <div className="mt-3 overflow-x-auto px-3 [&::-webkit-scrollbar]:hidden">
-                <div className="flex gap-1.5 pb-1 whitespace-nowrap">
-                  <SecNavChip label={t('project.airdrop')} onClick={() => nav(`/project/${id}/airdrop`)} />
-                  <SecNavChip label={t('project.exchange')} onClick={() => nav(`/project/${id}/exchange`)} />
-                  <SecNavChip label={t('project.holdersTitle')} onClick={() => nav(`/project/${id}/holders`)} />
-                  <SecNavChip label={t('project.mine')} onClick={() => nav(`/project/${id}/mine`)} />
-                  <SecNavChip label={t('project.milestones')} onClick={() => nav(`/project/${id}/milestones`)} />
-                  <SecNavChip label={t('project.disclosure')} onClick={() => nav(`/project/${id}/disclosure`)} />
-                  <SecNavChip label={t('project.fixedPrice')} onClick={() => nav(`/project/${id}/fixed-price`)} />
-                  <SecNavChip label={t('project.vesting')} onClick={() => nav(`/project/${id}/vesting`)} />
-                  {p.meteora_pool ? (
-                    <SecNavChip
-                      label={t('project.meteora')}
-                      accent
-                      onClick={() => window.open(`https://app.meteora.ag/dlmm/${p.meteora_pool ?? ''}`, '_blank')}
-                    />
-                  ) : null}
+            {/* ── User position banner (if holding) ── */}
+            {userPosition && Number(userPosition) > 0 ? (
+              <div className="mx-3 mb-3 flex items-center justify-between rounded-2xl bg-success-500/10 px-4 py-3 ring-1 ring-success-500/20">
+                <div>
+                  <p className="text-[10px] text-success-400">我的持仓</p>
+                  <p className="text-sm font-bold tabular-nums text-success-400">
+                    {formatTokenFromRaw(userPosition, locale, 2)} {p.symbol}
+                  </p>
                 </div>
+                <button
+                  type="button"
+                  className="rounded-full bg-success-500/15 px-3 py-1.5 text-[11px] font-semibold text-success-400"
+                  onClick={() => nav(`/project/${id}/mine`)}
+                >
+                  持仓详情 →
+                </button>
               </div>
+            ) : null}
 
-              {/* Chart */}
-              <div className="mx-3 mt-3 rounded-2xl bg-surface p-3">
-                <div className="mb-2 flex gap-1.5">
+            {/* ── RWA Info card ── */}
+            <div className="mx-3 mb-3 overflow-hidden rounded-2xl bg-surface ring-1 ring-white/8">
+              {/* Header */}
+              <div className="flex items-center gap-2 bg-accent-gradient px-4 py-2.5">
+                <Layers className="size-3.5 text-white/80" />
+                <p className="text-[11px] font-bold uppercase tracking-widest text-white">RWA Info</p>
+              </div>
+              <div className="grid grid-cols-2 gap-0 px-4 py-3">
+                <RwaField
+                  label="收益权比例"
+                  value={formatPercentFromBps(
+                    p.revenue_rights_percent_bps ?? p.fundraising_fraction_bps ?? 0,
+                    locale,
+                  )}
+                />
+                <RwaField
+                  label="公允估值"
+                  value={formatUsdtFromRaw(p.ip_revenue_rights_valuation_micro_usdt, locale)}
+                  right
+                />
+                <RwaField
+                  label="融资目标"
+                  value={formatUsdtFromRaw(p.target_financing_micro_usdt, locale)}
+                  border
+                />
+                <RwaField
+                  label="已募集"
+                  value={
+                    p.total_sold_raw && Number(p.total_sold_raw) > 0
+                      ? `${formatTokenFromRaw(p.total_sold_raw, locale, 0)} ${p.symbol}`
+                      : '—'
+                  }
+                  right
+                  border
+                />
+                <RwaField
+                  label="保证金"
+                  value={
+                    p.deposit_status === 'paid' ? '✓ 已缴'
+                    : p.deposit_status === 'unpaid' ? '✗ 未缴'
+                    : (p.deposit_status ?? '—')
+                  }
+                  valueClass={
+                    p.deposit_status === 'paid' ? 'text-success-400'
+                    : p.deposit_status === 'unpaid' ? 'text-danger-400'
+                    : ''
+                  }
+                  border
+                />
+                <RwaField
+                  label="作品类型"
+                  value={p.work_type ?? '—'}
+                  right
+                  border
+                />
+              </div>
+            </div>
+
+            {/* ── Secondary nav ── */}
+            <div className="overflow-x-auto px-3 pb-2 [&::-webkit-scrollbar]:hidden">
+              <div className="flex gap-2 whitespace-nowrap">
+                <SecNavChip icon={<Gift className="size-3" />}       label={t('project.airdrop')}     onClick={() => nav(`/project/${id}/airdrop`)} />
+                <SecNavChip icon={<ArrowLeftRight className="size-3" />} label={t('project.exchange')} onClick={() => nav(`/project/${id}/exchange`)} />
+                <SecNavChip icon={<Users className="size-3" />}       label={t('project.holdersTitle')} onClick={() => nav(`/project/${id}/holders`)} />
+                <SecNavChip icon={<BarChart2 className="size-3" />}   label={t('project.mine')}        onClick={() => nav(`/project/${id}/mine`)} />
+                <SecNavChip icon={<Flag className="size-3" />}        label={t('project.milestones')}  onClick={() => nav(`/project/${id}/milestones`)} />
+                <SecNavChip icon={<FileText className="size-3" />}    label={t('project.disclosure')}  onClick={() => nav(`/project/${id}/disclosure`)} />
+                <SecNavChip icon={<Tag className="size-3" />}         label={t('project.fixedPrice')}  onClick={() => nav(`/project/${id}/fixed-price`)} />
+                <SecNavChip icon={<Lock className="size-3" />}        label={t('project.vesting')}     onClick={() => nav(`/project/${id}/vesting`)} />
+                {p.meteora_pool ? (
+                  <SecNavChip
+                    icon={<Zap className="size-3" />}
+                    label={t('project.meteora')}
+                    accent
+                    onClick={() => window.open(`https://app.meteora.ag/dlmm/${p.meteora_pool ?? ''}`, '_blank')}
+                  />
+                ) : null}
+              </div>
+            </div>
+
+            {/* ── K-line chart ── */}
+            <div className="mx-3 mb-3 overflow-hidden rounded-2xl bg-surface ring-1 ring-white/8">
+              <div className="flex items-center justify-between border-b border-white/8 px-3 py-2">
+                <p className="text-[11px] font-semibold text-text-secondary">Price Chart</p>
+                <div className="flex gap-1">
                   {CHART_INTERVALS.map((iv) => (
                     <button
                       key={iv}
                       type="button"
                       onClick={() => setInterval(iv)}
                       className={cn(
-                        'rounded-full px-2.5 py-1 text-[10px] font-medium transition-all',
+                        'rounded-full px-2.5 py-0.5 text-[10px] font-medium transition-all',
                         interval === iv
                           ? 'bg-accent-500/25 text-accent-400'
-                          : 'bg-white/8 text-text-secondary hover:bg-white/12',
+                          : 'text-text-secondary hover:text-text-primary',
                       )}
                     >
                       {iv}
                     </button>
                   ))}
                 </div>
+              </div>
+              <div className="p-3">
                 {candles && candles.length > 0 ? (
                   <KLineChart data={candles} />
                 ) : (
                   <div className="flex h-[120px] items-center justify-center gap-2 text-sm text-text-secondary">
-                    <TrendingUp className="size-4" />
-                    No trades yet
+                    <TrendingUp className="size-4 opacity-40" />
+                    <span className="text-xs">No trades yet</span>
                   </div>
                 )}
               </div>
+            </div>
 
-              {/* Sub-tabs: Trades | Pond */}
-              <div className="mx-3 mt-3">
-                <div className="flex rounded-xl bg-white/6 p-0.5">
-                  {(['deal', 'pond'] as const).map((st) => (
+            {/* ── Sub-tabs: Trades | Pond ── */}
+            <div className="mx-3 mb-3">
+              <div className="flex overflow-hidden rounded-2xl bg-surface ring-1 ring-white/8">
+                {(['deal', 'pond'] as const).map((st) => (
+                  <button
+                    key={st}
+                    type="button"
+                    onClick={() => setSubTab(st)}
+                    className={cn(
+                      'flex-1 py-2.5 text-xs font-semibold transition-all',
+                      subTab === st
+                        ? 'bg-white/12 text-text-primary'
+                        : 'text-text-secondary hover:text-text-primary',
+                    )}
+                  >
+                    {st === 'deal' ? '📋 Recent Trades' : '🌊 Pond'}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-2">
+                {subTab === 'deal' ? (
+                  <RecentTrades trades={trades ?? []} locale={locale} symbol={p.symbol} />
+                ) : (
+                  <PondView p={p} />
+                )}
+              </div>
+            </div>
+
+            {/* ── Creator quick links ── */}
+            {isCreator ? (
+              <div className="mx-3 mb-4 overflow-hidden rounded-2xl ring-1 ring-success-500/20">
+                <div className="flex items-center gap-2 bg-success-500/10 px-4 py-2.5">
+                  <span className="text-sm">✦</span>
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-success-400">Creator Studio</p>
+                </div>
+                <div className="grid grid-cols-2 gap-px bg-white/5 p-0">
+                  {[
+                    { label: '管理空投阶段', icon: '🎁', path: `/studio/project/${id}/airdrop-phases` },
+                    { label: '提交里程碑',   icon: '🏁', path: `/studio/project/${id}/milestone` },
+                    { label: '收益进度',     icon: '📈', path: `/studio/project/${id}/progress` },
+                    { label: '财务披露',     icon: '📄', path: `/studio/project/${id}/reconcile` },
+                    { label: '增发申请',     icon: '🏷️', path: `/studio/project/${id}/fixed-price` },
+                    { label: '资金池',       icon: '🏦', path: `/studio/project/${id}/vault` },
+                  ].map((item) => (
                     <button
-                      key={st}
+                      key={item.label}
                       type="button"
-                      onClick={() => setSubTab(st)}
-                      className={cn(
-                        'flex-1 rounded-lg py-2 text-xs font-semibold transition-all',
-                        subTab === st
-                          ? 'bg-surface text-text-primary shadow'
-                          : 'text-text-secondary hover:text-text-primary',
-                      )}
+                      onClick={() => nav(item.path)}
+                      className="flex items-center gap-2 bg-canvas px-4 py-3 text-left text-xs hover:bg-white/5"
                     >
-                      {st === 'deal' ? 'Recent Trades' : 'Pond'}
+                      <span className="text-base">{item.icon}</span>
+                      <span className="text-text-secondary hover:text-text-primary">{item.label}</span>
                     </button>
                   ))}
                 </div>
-                <div className="mt-2">
-                  {subTab === 'deal' ? (
-                    <RecentTrades trades={trades ?? []} locale={locale} symbol={p.symbol} />
-                  ) : (
-                    <PondView p={p} />
-                  )}
-                </div>
               </div>
-
-              {/* Creator quick links */}
-              {isCreator ? (
-                <div className="mx-3 mt-3 mb-4 rounded-2xl bg-gradient-to-br from-success-500/15 to-info-500/10 p-3">
-                  <p className="mb-2 text-xs font-semibold text-success-400">Creator Actions</p>
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      { label: 'Manage Airdrops', path: `/studio/project/${id}/airdrop-phases` },
-                      { label: 'Submit Milestone', path: `/studio/project/${id}/milestone` },
-                      { label: 'Progress', path: `/studio/project/${id}/progress` },
-                      { label: 'Reconcile', path: `/studio/project/${id}/reconcile` },
-                      { label: 'Vault', path: `/studio/project/${id}/vault` },
-                    ].map((item) => (
-                      <button
-                        key={item.label}
-                        type="button"
-                        onClick={() => nav(item.path)}
-                        className="rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-medium hover:bg-white/15"
-                      >
-                        {item.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="mb-4" />
-              )}
-            </>
-          )}
-        </div>
-
+            ) : (
+              <div className="mb-4" />
+            )}
+          </>
+        )}
+      </div>
     </AppShell>
   );
 }
 
 /* ─── Sub-components ──────────────────────────────────────────────────── */
 
-function InfoField({
+function StatCell({
+  label,
+  value,
+  center,
+  right,
+}: {
+  label: string;
+  value: string;
+  center?: boolean;
+  right?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        'flex flex-col gap-0.5 px-4 py-3',
+        center && 'items-center border-x border-white/8',
+        right && 'items-end',
+      )}
+    >
+      <p className="text-[10px] text-text-secondary">{label}</p>
+      <p className="text-sm font-semibold tabular-nums">{value}</p>
+    </div>
+  );
+}
+
+function RwaField({
   label,
   value,
   valueClass,
+  right,
+  border,
 }: {
   label: string;
   value: string;
   valueClass?: string;
+  right?: boolean;
+  border?: boolean;
 }) {
   return (
-    <div>
+    <div
+      className={cn(
+        'py-2.5',
+        right && 'text-right',
+        border && 'border-t border-white/8',
+      )}
+    >
       <p className="text-[10px] text-text-secondary">{label}</p>
-      <p className={cn('mt-0.5 font-medium tabular-nums', valueClass)}>{value}</p>
+      <p className={cn('mt-0.5 text-sm font-semibold tabular-nums', valueClass)}>{value}</p>
     </div>
   );
 }
 
 function SecNavChip({
+  icon,
   label,
   onClick,
   accent,
 }: {
+  icon?: React.ReactNode;
   label: string;
   onClick: () => void;
   accent?: boolean;
@@ -552,12 +643,13 @@ function SecNavChip({
       type="button"
       onClick={onClick}
       className={cn(
-        'shrink-0 rounded-full px-3 py-1.5 text-[11px] font-medium ring-1 transition hover:opacity-90',
+        'flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium ring-1 transition-all active:scale-95',
         accent
-          ? 'bg-accent-500/15 text-accent-400 ring-accent-500/30'
-          : 'bg-white/6 text-text-secondary ring-white/10 hover:bg-white/10 hover:text-text-primary',
+          ? 'bg-accent-500/15 text-accent-400 ring-accent-500/30 hover:bg-accent-500/25'
+          : 'bg-white/6 text-text-secondary ring-white/10 hover:bg-white/12 hover:text-text-primary',
       )}
     >
+      {icon}
       {label}
     </button>
   );
@@ -573,13 +665,18 @@ function RecentTrades({
   symbol: string;
 }) {
   if (trades.length === 0) {
-    return <p className="py-6 text-center text-sm text-text-secondary">No trades yet</p>;
+    return (
+      <div className="flex flex-col items-center gap-2 rounded-2xl bg-surface py-8 ring-1 ring-white/6">
+        <TrendingUp className="size-6 text-text-secondary opacity-30" />
+        <p className="text-xs text-text-secondary">No trades yet</p>
+      </div>
+    );
   }
   return (
-    <div className="overflow-hidden rounded-xl">
-      <div className="grid grid-cols-4 border-b border-white/10 px-1 py-1.5 text-[10px] text-text-secondary">
+    <div className="overflow-hidden rounded-2xl bg-surface ring-1 ring-white/8">
+      <div className="grid grid-cols-4 border-b border-white/8 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-text-secondary">
         <span>Time</span>
-        <span className="text-right">Dir</span>
+        <span className="text-right">Side</span>
         <span className="text-right">Amount</span>
         <span className="text-right">Price</span>
       </div>
@@ -590,16 +687,19 @@ function RecentTrades({
         return (
           <div
             key={i}
-            className="grid grid-cols-4 border-b border-white/5 px-1 py-1.5 text-[10px] tabular-nums"
+            className={cn(
+              'grid grid-cols-4 border-b border-white/5 px-3 py-2 text-[10px] tabular-nums last:border-0',
+              isBuy ? 'hover:bg-success-500/5' : 'hover:bg-danger-500/5',
+            )}
           >
             <span className="text-text-secondary">{timeStr}</span>
-            <span className={cn('text-right font-medium', isBuy ? 'text-success-500' : 'text-danger-500')}>
-              {isBuy ? 'Buy' : 'Sell'}
+            <span className={cn('text-right font-semibold', isBuy ? 'text-success-400' : 'text-danger-400')}>
+              {isBuy ? '▲ Buy' : '▼ Sell'}
             </span>
             <span className="text-right text-text-secondary">
               {formatTokenFromRaw(tr.amount_token_raw, locale, 2)} {symbol}
             </span>
-            <span className="text-right text-text-primary">
+            <span className="text-right font-medium">
               ${formatTokenFromRaw(tr.price_raw, locale, 4)}
             </span>
           </div>
@@ -611,29 +711,37 @@ function RecentTrades({
 
 function PondView({ p }: { p: OnChainDetail }) {
   const vaultItems = [
-    { label: 'Early Airdrop Replenishment (20%)', pct: 20, color: 'bg-info-500' },
-    { label: 'Price Guard Fund (10%)', pct: 10, color: 'bg-warning-500' },
-    { label: 'Ecosystem LP (10%)', pct: 10, color: 'bg-accent-500' },
-    { label: 'Creator Fund (60%)', pct: 60, color: 'bg-success-500' },
+    { label: '早期空投补水', sublabel: 'Early Airdrop Replenishment', pct: 20, color: 'bg-info-500', glow: 'shadow-info-500/30' },
+    { label: '价格守卫基金', sublabel: 'Price Guard Fund',           pct: 10, color: 'bg-warning-400', glow: 'shadow-warning-400/30' },
+    { label: '生态 LP',       sublabel: 'Ecosystem LP',               pct: 10, color: 'bg-accent-500', glow: 'shadow-accent-500/30' },
+    { label: '创作者基金',    sublabel: 'Creator Fund',               pct: 60, color: 'bg-success-500', glow: 'shadow-success-500/30' },
   ];
   return (
-    <div className="space-y-2 py-1">
+    <div className="overflow-hidden rounded-2xl bg-surface ring-1 ring-white/8">
       {p.status !== 'migrated' ? (
-        <p className="py-2 text-center text-xs text-text-secondary">
-          Pond unlocks after graduation (Meteora migration)
-        </p>
-      ) : null}
-      {vaultItems.map((item) => (
-        <div key={item.label}>
-          <div className="flex justify-between text-[10px] text-text-secondary">
-            <span>{item.label}</span>
-            <span className="tabular-nums">{item.pct}%</span>
-          </div>
-          <div className="mt-0.5 h-1.5 overflow-hidden rounded-full bg-white/10">
-            <div className={cn('h-full', item.color)} style={{ width: `${item.pct}%` }} />
-          </div>
+        <div className="border-b border-white/8 px-4 py-3 text-center text-xs text-text-secondary">
+          🌊 Pond unlocks after graduation (Meteora migration)
         </div>
-      ))}
+      ) : null}
+      <div className="space-y-3 p-4">
+        {vaultItems.map((item) => (
+          <div key={item.label}>
+            <div className="mb-1 flex items-baseline justify-between">
+              <div>
+                <span className="text-xs font-medium">{item.label}</span>
+                <span className="ml-1.5 text-[10px] text-text-secondary">{item.sublabel}</span>
+              </div>
+              <span className="text-xs font-bold tabular-nums">{item.pct}%</span>
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-white/8">
+              <div
+                className={cn('h-full rounded-full', item.color)}
+                style={{ width: `${item.pct}%` }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -641,31 +749,37 @@ function PondView({ p }: { p: OnChainDetail }) {
 function MarketView({ p, t }: { p: OnChainDetail; t: (k: string) => string }) {
   if (p.status !== 'migrated') {
     return (
-      <div className="flex flex-col items-center gap-3 px-4 py-16">
-        <div className="flex size-16 items-center justify-center rounded-full bg-white/5 text-2xl">🌊</div>
-        <p className="text-sm font-medium">{p.symbol} is not on Meteora yet</p>
-        <p className="text-center text-xs text-text-secondary">
-          Market tab becomes available after the project graduates (curve completes) and migrates to Meteora DLMM.
-        </p>
+      <div className="flex flex-col items-center gap-4 px-6 py-20">
+        <div className="flex size-20 items-center justify-center rounded-full bg-accent-500/10 text-3xl ring-1 ring-accent-500/20">
+          🌊
+        </div>
+        <div className="text-center">
+          <p className="text-sm font-semibold">{p.symbol} is not on Meteora yet</p>
+          <p className="mt-1 text-xs text-text-secondary">
+            Market tab becomes available after the project graduates and migrates to Meteora DLMM.
+          </p>
+        </div>
       </div>
     );
   }
   return (
-    <div className="flex flex-col gap-4 p-4">
-      <div className="rounded-2xl bg-surface p-3 space-y-2">
-        <p className="text-sm font-semibold">On Meteora since graduation</p>
-        <div className="flex items-center gap-2 text-xs text-text-secondary">
+    <div className="flex flex-col gap-3 p-4">
+      <div className="overflow-hidden rounded-2xl bg-surface ring-1 ring-white/8">
+        <div className="border-b border-white/8 px-4 py-2.5">
+          <p className="text-xs font-semibold text-success-400">✓ Graduated · On Meteora</p>
+        </div>
+        <div className="flex items-center gap-2 px-4 py-3 text-xs text-text-secondary">
           <span>Pool:</span>
           <span className="font-mono text-text-primary">{shortenAddress(p.meteora_pool ?? '', 8, 4)}</span>
           <button
             type="button"
-            className="rounded px-1.5 py-0.5 bg-white/10 text-[10px]"
+            className="ml-auto flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-[10px]"
             onClick={() => {
               void navigator.clipboard.writeText(p.meteora_pool ?? '');
               toast.success(t('common.copied'));
             }}
           >
-            <Copy className="size-3 inline mr-0.5" />
+            <Copy className="size-3" />
             Copy
           </button>
         </div>
@@ -674,15 +788,15 @@ function MarketView({ p, t }: { p: OnChainDetail; t: (k: string) => string }) {
         href={`https://app.meteora.ag/dlmm/${p.meteora_pool ?? ''}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="block rounded-2xl bg-accent-gradient py-3 text-center text-sm font-bold text-white shadow-lg"
+        className="block rounded-2xl bg-accent-gradient py-3.5 text-center text-sm font-bold text-white shadow-lg shadow-accent-500/20"
       >
-        {t('common.openMeteora')}
+        {t('common.openMeteora')} ↗
       </a>
       <a
         href={`https://app.meteora.ag/dlmm/${p.meteora_pool ?? ''}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="block rounded-2xl bg-white/10 py-3 text-center text-sm font-medium text-text-primary"
+        className="block rounded-2xl bg-white/8 py-3.5 text-center text-sm font-medium ring-1 ring-white/10 hover:bg-white/12"
       >
         Provide Liquidity
       </a>
@@ -803,7 +917,7 @@ function TradeSheetInline({
           onClick={() => { setSide('buy'); setPreview(null); }}
           className={cn(
             'flex-1 rounded-xl py-2 text-sm font-bold transition-all',
-            side === 'buy' ? 'bg-success-500 text-white' : 'bg-white/10 text-text-secondary',
+            side === 'buy' ? 'bg-success-500 text-white shadow-lg shadow-success-500/25' : 'bg-white/10 text-text-secondary',
           )}
         >
           Buy
@@ -813,7 +927,7 @@ function TradeSheetInline({
           onClick={() => { setSide('sell'); setPreview(null); }}
           className={cn(
             'flex-1 rounded-xl py-2 text-sm font-bold transition-all',
-            side === 'sell' ? 'bg-warning-500 text-white' : 'bg-white/10 text-text-secondary',
+            side === 'sell' ? 'bg-warning-500 text-white shadow-lg shadow-warning-500/25' : 'bg-white/10 text-text-secondary',
           )}
         >
           Sell
@@ -926,7 +1040,7 @@ function TradeSheetInline({
       ) : !wallet ? (
         <button
           type="button"
-          className="w-full rounded-2xl bg-white/10 py-3.5 text-sm font-medium text-text-primary"
+          className="w-full rounded-2xl bg-white/10 py-3.5 text-sm font-medium text-text-primary ring-1 ring-white/15"
           onClick={() => { onClose(); setSheet('connect'); }}
         >
           Connect Wallet
@@ -938,7 +1052,7 @@ function TradeSheetInline({
           onClick={() => mPreview.mutate()}
           className={cn(
             'w-full rounded-2xl py-3.5 text-sm font-bold text-white transition-all',
-            side === 'buy' ? 'bg-success-500' : 'bg-warning-500',
+            side === 'buy' ? 'bg-success-500 shadow-lg shadow-success-500/20' : 'bg-warning-500 shadow-lg shadow-warning-500/20',
             (tooSmall || mPreview.isPending) && 'opacity-50',
           )}
         >
