@@ -75,7 +75,7 @@ export function ProjectCard({ item }: { item: OnChainDetail }) {
     <button
       type="button"
       onClick={() => nav(`/project/${item.id}`)}
-      className="w-full rounded-2xl bg-surface p-3.5 text-left ring-1 ring-white/8 transition-all active:scale-[0.99] hover:ring-white/15"
+      className="w-full rounded-2xl bg-surface p-3.5 text-left text-text-primary ring-1 ring-white/8 transition-all active:scale-[0.99] hover:ring-white/15"
     >
       {/* Row 1: cover + name/symbol + badges */}
       <div className="flex items-start gap-3">

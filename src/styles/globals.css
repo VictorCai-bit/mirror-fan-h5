@@ -3,10 +3,8 @@
 @tailwind utilities;
 
 /*
-  1. Declare dark color-scheme so browser system colors (ButtonText, etc.)
-     resolve to their dark-mode variants.
-  2. Set an explicit default text color so <button>, <input>, <select> and
-     other replaced elements inherit a visible color instead of browser black.
+  Force color-scheme to dark so browser system colors (ButtonText, LinkText, etc.)
+  resolve to their dark-mode equivalents rather than black.
 */
 html {
   color-scheme: dark;
@@ -18,47 +16,40 @@ body,
   height: 100%;
   margin: 0;
   background: #0b0a1a;
-  color: #f4f4f5; /* = text-text-primary */
+  color: #f4f4f5;
 }
 
-/* Ensure native interactive elements always inherit the page color */
-button,
-input,
-select,
-textarea,
-a {
-  color: inherit;
+/*
+  Native interactive elements (button, input, select, a) inherit a user-agent
+  color (e.g. ButtonText = black) that ignores CSS inheritance by default.
+  Resetting to 'inherit' here makes them pick up the nearest ancestor's color.
+  Using @layer base ensures this runs before utilities but with proper cascade.
+*/
+@layer base {
+  button,
+  input,
+  select,
+  textarea,
+  a {
+    color: inherit;
+  }
 }
 
 .tabular-nums {
   font-variant-numeric: tabular-nums;
 }
 
-/* Scrollbar: thin & transparent on dark backgrounds */
+/* Thin dark-aware scrollbars */
 * {
   scrollbar-width: thin;
   scrollbar-color: rgba(255 255 255 / 0.15) transparent;
 }
 
-/* Hide scrollbar on overflow-x scroll strips */
+/* Hide scrollbar on horizontal strip elements */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
-}
-
-/*
-  AppShell viewport height with fallback.
-  HarmonyOS browsers and older WebViews may not support `dvh`, so declare
-  `vh` first (as fallback) and `dvh` second (modern browsers take this one).
-*/
-.app-shell-root {
-  min-height: 100vh;
-  min-height: 100dvh;
-}
-.app-shell-frame {
-  height: 100vh;
-  height: 100dvh;
 }
