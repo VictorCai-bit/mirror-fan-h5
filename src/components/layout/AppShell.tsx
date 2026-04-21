@@ -29,7 +29,14 @@ export function AppShell({
       >
         <TopBar />
         {showBand ? <CreatorBand /> : null}
-        <main className={cn('min-h-0 flex-1', noScroll ? 'overflow-hidden' : 'overflow-y-auto')}>
+        <main
+          className={cn(
+            'min-h-0 flex-1',
+            noScroll
+              ? 'flex flex-col overflow-hidden'
+              : 'overflow-y-auto',
+          )}
+        >
           {children}
         </main>
         {hideTab ? null : <BottomTab />}

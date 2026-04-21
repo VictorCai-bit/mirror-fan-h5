@@ -143,8 +143,8 @@ export default function DetailPage() {
         />
       ) : null}
 
-      {/* Outer layout: flex col, fill screen — h-full works because parent <main> is overflow-hidden */}
-      <div className="flex h-full flex-col overflow-hidden">
+      {/* Outer layout: use flex-1 (not h-full) so iOS Safari can correctly compute remaining height */}
+      <div className="flex flex-1 flex-col overflow-hidden">
 
         {/* ── Top nav bar ── */}
         <div className="flex h-12 shrink-0 items-center gap-2 px-2">
