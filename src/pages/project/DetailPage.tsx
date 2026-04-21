@@ -132,7 +132,7 @@ export default function DetailPage() {
       : 'Trading not available';
 
   return (
-    <AppShell hideTab>
+    <AppShell hideTab noScroll>
       {tradeOpen ? (
         <TradeSheetInline
           projectId={Number(id)}
@@ -143,7 +143,7 @@ export default function DetailPage() {
         />
       ) : null}
 
-      {/* Outer layout: flex col, fill screen */}
+      {/* Outer layout: flex col, fill screen — h-full works because parent <main> is overflow-hidden */}
       <div className="flex h-full flex-col overflow-hidden">
 
         {/* ── Top nav bar ── */}
