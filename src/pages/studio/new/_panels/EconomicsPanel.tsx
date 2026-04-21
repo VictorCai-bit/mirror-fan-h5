@@ -5,6 +5,18 @@ import type { NewProjectDraft } from '@/types/api';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 
+/** micro-USDT (6 decimals) ↔ display USDT string */
+function microToUsdt(raw: string | undefined): string {
+  const n = Number(raw || 0);
+  if (!n) return '';
+  return (n / 1_000_000).toFixed(2).replace(/\.00$/, '');
+}
+function usdtToMicro(val: string): string {
+  const n = parseFloat(val);
+  if (isNaN(n) || n <= 0) return '0';
+  return String(Math.round(n * 1_000_000));
+}
+
 export interface EconomicsPanelProps {
   value: NewProjectDraft;
   onChange: (patch: Partial<NewProjectDraft>) => void;
@@ -49,23 +61,33 @@ export function EconomicsPanel({ value, onChange, disabled }: EconomicsPanelProp
 
   return (
     <div className="flex flex-col gap-3">
-      <Field label={t('studio.fields.targetFinancingMicro')}>
-        <Input
-          disabled={disabled}
-          value={value.target_financing_micro_usdt}
-          onChange={(e) => onChange({ target_financing_micro_usdt: e.target.value.replace(/[^0-9]/g, '') })}
-          className="font-mono text-xs"
-        />
+      <Field label="融资目标 (USDT)" hint="例：80000">
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-secondary">$</span>
+          <Input
+            disabled={disabled}
+            value={microToUsdt(value.target_financing_micro_usdt)}
+            onChange={(e) =>
+              onChange({ target_financing_micro_usdt: usdtToMicro(e.target.value) })
+            }
+            className="pl-6 font-mono text-xs"
+            placeholder="80000"
+          />
+        </div>
       </Field>
-      <Field label={t('studio.fields.ipValuationMicro')}>
-        <Input
-          disabled={disabled}
-          value={value.ip_revenue_rights_valuation_micro_usdt}
-          onChange={(e) =>
-            onChange({ ip_revenue_rights_valuation_micro_usdt: e.target.value.replace(/[^0-9]/g, '') })
-          }
-          className="font-mono text-xs"
-        />
+      <Field label="IP 估值 (USDT)" hint="例：400000000">
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-secondary">$</span>
+          <Input
+            disabled={disabled}
+            value={microToUsdt(value.ip_revenue_rights_valuation_micro_usdt)}
+            onChange={(e) =>
+              onChange({ ip_revenue_rights_valuation_micro_usdt: usdtToMicro(e.target.value) })
+            }
+            className="pl-6 font-mono text-xs"
+            placeholder="400000000"
+          />
+        </div>
       </Field>
 
       <Field label={`${t('studioWizard.step2Slider')} · ${(bps / 100).toFixed(0)}%`} hint={t('studioWizard.step2SliderHint')}>

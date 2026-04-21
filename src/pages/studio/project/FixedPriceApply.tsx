@@ -8,20 +8,73 @@ import { formatDateTime } from '@/lib/fmt';
 import { RequireCreator } from '@/routes/guards';
 import type { FixedPriceApplyBody, FixedPriceApplyRow } from '@/types/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Calendar } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 
+/* ── date helpers ─────────────────────────────────────────────────────── */
+
+function unixToLocal(unix: number): string {
+  if (!unix) return '';
+  const d = new Date(unix * 1000);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    `T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  );
+}
+
+function localToUnix(val: string): number {
+  if (!val) return 0;
+  return Math.floor(new Date(val).getTime() / 1000);
+}
+
+/* ── USDT helpers (micro-USDT ↔ human USDT string) ──────────────────── */
+// raw = micro-USDT (6 decimals): "150000" → "$0.15"
+function rawPriceToDisplay(raw: string): string {
+  const n = Number(raw);
+  if (isNaN(n)) return '';
+  return (n / 1_000_000).toFixed(6).replace(/\.?0+$/, '');
+}
+function displayPriceToRaw(val: string): string {
+  const n = parseFloat(val);
+  if (isNaN(n) || n <= 0) return '0';
+  return String(Math.round(n * 1_000_000));
+}
+
+// target: micro-USDT large number: "200000000000" → "200000"
+function rawTargetToDisplay(raw: string): string {
+  const n = Number(raw);
+  if (isNaN(n)) return '';
+  return (n / 1_000_000).toFixed(2).replace(/\.00$/, '');
+}
+function displayTargetToRaw(val: string): string {
+  const n = parseFloat(val);
+  if (isNaN(n) || n <= 0) return '0';
+  return String(Math.round(n * 1_000_000));
+}
+
+/* ── slice period presets ──────────────────────────────────────────────── */
+const PERIOD_OPTIONS = [
+  { label: '7 天', value: 86400 * 7 },
+  { label: '14 天', value: 86400 * 14 },
+  { label: '30 天', value: 86400 * 30 },
+  { label: '60 天', value: 86400 * 60 },
+  { label: '90 天', value: 86400 * 90 },
+  { label: '180 天', value: 86400 * 180 },
+];
+
+/* ── initial state ─────────────────────────────────────────────────────── */
 function initialForm(projectId: number): FixedPriceApplyBody {
   const now = Math.floor(Date.now() / 1000);
   return {
     project_id: projectId,
-    price_usdt_per_token_raw: '150000',
-    target_usdt_raw: '200000000000',
+    price_usdt_per_token_raw: '150000',       // $0.15
+    target_usdt_raw: '200000000000',           // $200,000
     sale_start_unix: now + 86400 * 3,
-    sale_end_unix: now + 86400 * 10,
+    sale_end_unix:   now + 86400 * 10,
     vesting_num_slices: 4,
     vesting_slice_period_sec: 86400 * 30,
     vesting_percentages_bps_csv: '2500,2500,2500,2500',
@@ -31,17 +84,21 @@ function initialForm(projectId: number): FixedPriceApplyBody {
 }
 
 function validateForm(f: FixedPriceApplyBody): string | null {
-  if (!f.price_usdt_per_token_raw || BigInt(f.price_usdt_per_token_raw) <= 0n) return 'price';
-  if (!f.target_usdt_raw || BigInt(f.target_usdt_raw) <= 0n) return 'target';
-  if (f.sale_end_unix <= f.sale_start_unix) return 'sale_window';
+  if (!f.price_usdt_per_token_raw || BigInt(f.price_usdt_per_token_raw) <= 0n) return '单价不能为 0';
+  if (!f.target_usdt_raw || BigInt(f.target_usdt_raw) <= 0n) return '融资目标不能为 0';
+  if (!f.sale_start_unix) return '请选择认购开始时间';
+  if (!f.sale_end_unix)   return '请选择认购截止时间';
+  if (f.sale_end_unix <= f.sale_start_unix) return '截止时间需晚于开始时间';
   const csvParts = f.vesting_percentages_bps_csv.split(',').map((x) => Number(x.trim()));
-  if (csvParts.length !== f.vesting_num_slices) return 'csv_len';
+  if (csvParts.length !== f.vesting_num_slices) return `CSV 应有 ${f.vesting_num_slices} 段`;
   const sum = csvParts.reduce((a, b) => a + b, 0);
-  if (sum !== 10_000) return 'csv_sum';
-  if (f.vesting_start_unix < f.sale_end_unix) return 'vesting_start';
+  if (sum !== 10_000) return `各期合计须等于 10000 bps（当前 ${sum}）`;
+  if (!f.vesting_start_unix) return '请选择 Vesting 开始时间';
+  if (f.vesting_start_unix < f.sale_end_unix) return 'Vesting 开始需晚于认购截止';
   return null;
 }
 
+/* ── Page ─────────────────────────────────────────────────────────────── */
 export default function StudioProjectFixedPriceApply() {
   const { id } = useParams();
   const nav = useNavigate();
@@ -50,6 +107,10 @@ export default function StudioProjectFixedPriceApply() {
   const pid = Number(id);
 
   const [form, setForm] = useState<FixedPriceApplyBody>(initialForm(pid));
+
+  // Display-layer state (human-readable strings)
+  const [priceDisplay, setPriceDisplay]   = useState(() => rawPriceToDisplay('150000'));
+  const [targetDisplay, setTargetDisplay] = useState(() => rawTargetToDisplay('200000000000'));
 
   const { data: applies, isPending } = useQuery({
     queryKey: ['studio', 'fp', 'applies', id],
@@ -77,117 +138,163 @@ export default function StudioProjectFixedPriceApply() {
   return (
     <RequireCreator>
       <AppShell>
-        <div className="flex flex-col gap-3 p-3 pb-8">
+        <div className="flex flex-col gap-4 p-3 pb-10">
+          {/* Header */}
           <div className="flex items-center gap-2">
             <button type="button" className="rounded-lg p-2 hover:bg-white/5" onClick={() => nav(-1)}>
               <ChevronLeft className="size-5" />
             </button>
-            <h1 className="text-lg font-semibold">{t('studio2.fp.title')}</h1>
+            <h1 className="text-base font-semibold">{t('studio2.fp.title')}</h1>
           </div>
 
-          <p className="rounded-xl bg-warn-500/10 p-2 text-[11px] text-warn-500">
+          <p className="rounded-xl bg-warning-500/10 p-3 text-[11px] text-warning-400">
             {t('studio2.fp.todoC')}
           </p>
 
-          <section className="grid grid-cols-2 gap-2 rounded-2xl bg-surface p-3 ring-1 ring-white/10">
-            <Field label={t('studio2.fp.price')}>
-              <Input
-                value={form.price_usdt_per_token_raw}
-                onChange={(e) => set({ price_usdt_per_token_raw: e.target.value.replace(/[^0-9]/g, '') })}
-                className="font-mono text-xs"
+          {/* ── 定价 & 融资 ── */}
+          <Section title="定价 & 融资">
+            <Field label="认购单价 (USDT / 代币)">
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-secondary">$</span>
+                <Input
+                  value={priceDisplay}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/[^0-9.]/g, '');
+                    setPriceDisplay(v);
+                    set({ price_usdt_per_token_raw: displayPriceToRaw(v) });
+                  }}
+                  className="pl-6 font-mono"
+                  placeholder="0.15"
+                />
+              </div>
+            </Field>
+            <Field label="融资目标 (USDT)">
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-secondary">$</span>
+                <Input
+                  value={targetDisplay}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/[^0-9.]/g, '');
+                    setTargetDisplay(v);
+                    set({ target_usdt_raw: displayTargetToRaw(v) });
+                  }}
+                  className="pl-6 font-mono"
+                  placeholder="200000"
+                />
+              </div>
+            </Field>
+          </Section>
+
+          {/* ── 认购时间窗口 ── */}
+          <Section title="认购时间窗口">
+            <Field label="开始时间">
+              <DateInput
+                value={unixToLocal(form.sale_start_unix)}
+                onChange={(v) => set({ sale_start_unix: localToUnix(v) })}
               />
             </Field>
-            <Field label={t('studio2.fp.target')}>
-              <Input
-                value={form.target_usdt_raw}
-                onChange={(e) => set({ target_usdt_raw: e.target.value.replace(/[^0-9]/g, '') })}
-                className="font-mono text-xs"
+            <Field label="截止时间">
+              <DateInput
+                value={unixToLocal(form.sale_end_unix)}
+                min={unixToLocal(form.sale_start_unix)}
+                onChange={(v) => set({ sale_end_unix: localToUnix(v) })}
               />
             </Field>
-            <Field label={t('studio2.fp.saleStart')}>
+            {form.sale_start_unix > 0 && form.sale_end_unix > form.sale_start_unix && (
+              <p className="col-span-2 text-[10px] text-text-secondary">
+                窗口时长：{Math.round((form.sale_end_unix - form.sale_start_unix) / 86400)} 天
+              </p>
+            )}
+          </Section>
+
+          {/* ── Vesting 计划 ── */}
+          <Section title="Vesting 计划">
+            <Field label="分期数量">
               <Input
-                value={String(form.sale_start_unix)}
-                onChange={(e) => set({ sale_start_unix: Number(e.target.value) || 0 })}
-                className="font-mono text-xs"
-              />
-            </Field>
-            <Field label={t('studio2.fp.saleEnd')}>
-              <Input
-                value={String(form.sale_end_unix)}
-                onChange={(e) => set({ sale_end_unix: Number(e.target.value) || 0 })}
-                className="font-mono text-xs"
-              />
-            </Field>
-            <Field label={t('studio2.fp.slices')}>
-              <Input
+                type="number"
+                min={1}
+                max={12}
                 value={String(form.vesting_num_slices)}
-                onChange={(e) => set({ vesting_num_slices: Number(e.target.value) || 0 })}
-                className="font-mono text-xs"
+                onChange={(e) => set({ vesting_num_slices: Math.max(1, Number(e.target.value) || 1) })}
               />
             </Field>
-            <Field label={t('studio2.fp.slicePeriod')}>
-              <Input
+            <Field label="每期间隔">
+              <select
                 value={String(form.vesting_slice_period_sec)}
-                onChange={(e) => set({ vesting_slice_period_sec: Number(e.target.value) || 0 })}
-                className="font-mono text-xs"
-              />
+                onChange={(e) => set({ vesting_slice_period_sec: Number(e.target.value) })}
+                className="w-full rounded-xl bg-elevated px-3 py-2.5 text-sm text-text-primary ring-1 ring-white/10 focus:outline-none focus:ring-accent-500/50"
+              >
+                {PERIOD_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
             </Field>
             <div className="col-span-2">
-              <Field label={t('studio2.fp.percentCsv')}>
+              <Field label={`各期释放比例 bps（逗号分隔，合计 10000，共 ${form.vesting_num_slices} 期）`}>
                 <Input
                   value={form.vesting_percentages_bps_csv}
                   onChange={(e) => set({ vesting_percentages_bps_csv: e.target.value })}
+                  placeholder="2500,2500,2500,2500"
                   className="font-mono text-xs"
+                />
+                <VestingPreview
+                  csv={form.vesting_percentages_bps_csv}
+                  slices={form.vesting_num_slices}
+                  periodSec={form.vesting_slice_period_sec}
+                  startUnix={form.vesting_start_unix}
                 />
               </Field>
             </div>
             <div className="col-span-2">
-              <Field label={t('studio2.fp.vestingStart')}>
-                <Input
-                  value={String(form.vesting_start_unix)}
-                  onChange={(e) => set({ vesting_start_unix: Number(e.target.value) || 0 })}
-                  className="font-mono text-xs"
+              <Field label="Vesting 开始时间（需晚于认购截止）">
+                <DateInput
+                  value={unixToLocal(form.vesting_start_unix)}
+                  min={unixToLocal(form.sale_end_unix)}
+                  onChange={(v) => set({ vesting_start_unix: localToUnix(v) })}
                 />
               </Field>
             </div>
-            <div className="col-span-2">
-              <Field label={t('studio2.fp.note')}>
-                <Input
-                  value={form.note ?? ''}
-                  onChange={(e) => set({ note: e.target.value })}
-                />
-              </Field>
-            </div>
-          </section>
+          </Section>
 
+          {/* ── 备注 ── */}
+          <Section title="备注（给运营）">
+            <div className="col-span-2">
+              <textarea
+                value={form.note ?? ''}
+                onChange={(e) => set({ note: e.target.value })}
+                rows={3}
+                placeholder="可填写特殊说明，如分配比例调整原因…"
+                className="w-full rounded-xl bg-elevated px-3 py-2.5 text-sm text-text-primary ring-1 ring-white/10 focus:outline-none focus:ring-accent-500/50 resize-none"
+              />
+            </div>
+          </Section>
+
+          {/* Error */}
           {err ? (
-            <p className="text-[11px] text-danger-500">
-              {t('errors.4010')} · {err}
-            </p>
+            <p className="rounded-xl bg-danger-500/10 px-3 py-2 text-[11px] text-danger-400">{err}</p>
           ) : null}
 
           <Button loading={submit.isPending} disabled={!!err} onClick={() => submit.mutate()}>
             {t('studio2.fp.submit')}
           </Button>
 
+          {/* ── 申请记录 ── */}
           <section>
-            <p className="mb-1.5 text-xs font-semibold text-text-secondary">
-              {t('studio2.fp.appliedList')}
-            </p>
+            <p className="mb-2 text-xs font-semibold text-text-secondary">{t('studio2.fp.appliedList')}</p>
             {isPending ? <Skeleton className="h-24 w-full rounded-2xl" /> : null}
             <div className="flex flex-col gap-2">
               {(applies ?? []).map((a) => (
-                <div key={a.apply_id} className="rounded-2xl bg-surface p-3 ring-1 ring-white/10">
+                <div key={a.apply_id} className="rounded-2xl bg-surface p-3 ring-1 ring-white/8">
                   <div className="flex items-center justify-between">
                     <p className="truncate font-mono text-[11px] text-text-secondary">
-                      {a.apply_id.slice(0, 12)}…
+                      {a.apply_id.slice(0, 16)}…
                     </p>
                     <Badge>{a.status}</Badge>
                   </div>
                   <p className="mt-1 text-[10px] text-text-secondary">
                     {formatDateTime(a.created_at, i18n.language)}
                   </p>
-                  {a.note ? <p className="mt-1 text-xs text-text-primary">{a.note}</p> : null}
+                  {a.note ? <p className="mt-1 text-xs">{a.note}</p> : null}
                 </div>
               ))}
             </div>
@@ -198,11 +305,86 @@ export default function StudioProjectFixedPriceApply() {
   );
 }
 
+/* ── Sub-components ─────────────────────────────────────────────────── */
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="overflow-hidden rounded-2xl bg-surface ring-1 ring-white/8">
+      <div className="border-b border-white/8 px-4 py-2">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-accent-400">{title}</p>
+      </div>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-3 p-4">
+        {children}
+      </div>
+    </div>
+  );
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="flex flex-col gap-1">
-      <span className="text-[11px] text-text-secondary">{label}</span>
+    <label className="col-span-1 flex flex-col gap-1.5">
+      <span className="text-[10px] font-medium text-text-secondary">{label}</span>
       {children}
     </label>
+  );
+}
+
+function DateInput({
+  value,
+  min,
+  onChange,
+}: {
+  value: string;
+  min?: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="relative">
+      <input
+        type="datetime-local"
+        value={value}
+        min={min}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-xl bg-elevated px-3 py-2.5 text-sm text-text-primary ring-1 ring-white/10 focus:outline-none focus:ring-accent-500/50"
+      />
+      <Calendar className="pointer-events-none absolute right-3 top-1/2 size-3.5 -translate-y-1/2 text-text-secondary" />
+    </div>
+  );
+}
+
+function VestingPreview({
+  csv,
+  slices,
+  periodSec,
+  startUnix,
+}: {
+  csv: string;
+  slices: number;
+  periodSec: number;
+  startUnix: number;
+}) {
+  const parts = csv.split(',').map((x) => Number(x.trim()));
+  if (parts.length !== slices || parts.some(isNaN)) return null;
+  const sum = parts.reduce((a, b) => a + b, 0);
+  return (
+    <div className="mt-2 space-y-1">
+      {parts.map((bps, i) => {
+        const unlockAt = startUnix ? startUnix + i * periodSec : 0;
+        const dateStr = unlockAt
+          ? new Date(unlockAt * 1000).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', year: 'numeric' })
+          : '—';
+        return (
+          <div key={i} className="flex items-center justify-between text-[10px]">
+            <span className="text-text-secondary">第 {i + 1} 期 · {dateStr}</span>
+            <span className={sum === 10000 ? 'text-success-400' : 'text-warning-400'}>
+              {(bps / 100).toFixed(0)}%
+            </span>
+          </div>
+        );
+      })}
+      {sum !== 10000 && (
+        <p className="text-[10px] text-danger-400">合计 {sum} bps ≠ 10000</p>
+      )}
+    </div>
   );
 }
