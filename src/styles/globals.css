@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background: #0b0a1a;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
