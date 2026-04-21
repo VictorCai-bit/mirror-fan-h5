@@ -10,8 +10,12 @@ const qc = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
 });
 
+// MSW is enabled whenever no real API base is configured (dev + Vercel demo).
+// Set VITE_API_BASE in your environment to point at a real backend and skip mocking.
+const USE_MOCK = !import.meta.env.VITE_API_BASE;
+
 async function enableMocking() {
-  if (import.meta.env.MODE !== 'development') return;
+  if (!USE_MOCK) return;
   // Unregister any stale mockServiceWorker from previous dev sessions
   // (different ports, older handler bundles) so the fresh one can take over.
   if ('serviceWorker' in navigator) {
