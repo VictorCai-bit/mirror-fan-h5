@@ -21,10 +21,10 @@ export function AppShell({
   const studio = loc.pathname.startsWith('/studio');
   const showBand = creatorMode ?? studio;
   return (
-    <div className="flex min-h-dvh justify-center bg-black">
+    <div className="app-shell-root flex justify-center bg-black">
       <div
         className={cn(
-          'relative flex h-dvh w-full max-w-[375px] flex-col overflow-hidden bg-base text-text-primary shadow-2xl',
+          'app-shell-frame relative flex w-full max-w-[375px] flex-col overflow-hidden bg-base text-text-primary shadow-2xl',
         )}
       >
         <TopBar />

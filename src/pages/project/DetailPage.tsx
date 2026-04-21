@@ -132,7 +132,10 @@ export default function DetailPage() {
       : 'Trading not available';
 
   const buySellFooter = mainTab === 'first' ? (
-    <div className="shrink-0 bg-base px-3 pb-5 pt-2.5">
+    <div
+      className="absolute inset-x-0 bottom-0 z-20 bg-base px-3 pt-2.5"
+      style={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom, 0px))' }}
+    >
       {/* fade edge */}
       <div className="pointer-events-none absolute inset-x-0 -top-8 h-8 bg-gradient-to-b from-transparent to-base" />
       {/* Price ticker pill */}
@@ -247,7 +250,8 @@ export default function DetailPage() {
         </div>
 
         {/* ── Scrollable content ── */}
-        <div className="pb-4">
+        {/* bottom padding leaves room for the fixed BUY/SELL bar (~120px) */}
+        <div className={mainTab === 'first' ? 'pb-[140px]' : 'pb-4'}>
           {mainTab === 'market' ? (
             <MarketView p={p} t={t} />
           ) : (

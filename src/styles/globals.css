@@ -48,3 +48,17 @@ a {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/*
+  AppShell viewport height with fallback.
+  HarmonyOS browsers and older WebViews may not support `dvh`, so declare
+  `vh` first (as fallback) and `dvh` second (modern browsers take this one).
+*/
+.app-shell-root {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+.app-shell-frame {
+  height: 100vh;
+  height: 100dvh;
+}
