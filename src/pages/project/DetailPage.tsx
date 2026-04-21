@@ -131,8 +131,70 @@ export default function DetailPage() {
       ? 'Trading starts soon'
       : 'Trading not available';
 
+  const buySellFooter = mainTab === 'first' ? (
+    <div className="shrink-0 bg-base px-3 pb-5 pt-2.5">
+      {/* fade edge */}
+      <div className="pointer-events-none absolute inset-x-0 -top-8 h-8 bg-gradient-to-b from-transparent to-base" />
+      {/* Price ticker pill */}
+      <div className="mb-2.5 flex items-center justify-center gap-1.5">
+        <span className="text-[11px] tabular-nums text-text-secondary">
+          ${formatTokenFromRaw(price, locale, 4)}
+        </span>
+        {change !== 0 ? (
+          <span
+            className={cn(
+              'rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums',
+              changePositive
+                ? 'bg-success-500/15 text-success-400'
+                : 'bg-danger-500/15 text-danger-400',
+            )}
+          >
+            {changeStr}
+          </span>
+        ) : null}
+        {!canTrade ? (
+          <span className="rounded-full bg-white/8 px-2 py-0.5 text-[10px] text-text-secondary">
+            {tradeDisabledReason}
+          </span>
+        ) : null}
+      </div>
+      <div className="flex gap-2.5">
+        <button
+          type="button"
+          disabled={!canTrade}
+          onClick={() => openTrade('buy')}
+          className={cn(
+            'relative flex flex-1 flex-col items-center justify-center overflow-hidden rounded-2xl py-3.5 transition-all active:scale-[0.97]',
+            canTrade
+              ? 'bg-success-500 text-white shadow-lg shadow-success-500/30'
+              : 'bg-white/8 text-text-secondary',
+          )}
+        >
+          {canTrade ? <span className="absolute inset-0 bg-gradient-to-br from-white/15 to-transparent" /> : null}
+          <span className="relative text-[15px] font-bold tracking-wide">{t('project.buy')}</span>
+          {canTrade ? <span className="relative mt-0.5 text-[10px] font-normal text-white/60">做多</span> : null}
+        </button>
+        <button
+          type="button"
+          disabled={!canTrade}
+          onClick={() => openTrade('sell')}
+          className={cn(
+            'relative flex flex-1 flex-col items-center justify-center overflow-hidden rounded-2xl py-3.5 transition-all active:scale-[0.97]',
+            canTrade
+              ? 'bg-warning-500 text-white shadow-lg shadow-warning-500/30'
+              : 'bg-white/8 text-text-secondary',
+          )}
+        >
+          {canTrade ? <span className="absolute inset-0 bg-gradient-to-br from-white/15 to-transparent" /> : null}
+          <span className="relative text-[15px] font-bold tracking-wide">{t('project.sell')}</span>
+          {canTrade ? <span className="relative mt-0.5 text-[10px] font-normal text-white/60">做空</span> : null}
+        </button>
+      </div>
+    </div>
+  ) : null;
+
   return (
-    <AppShell hideTab noScroll>
+    <AppShell hideTab footer={buySellFooter}>
       {tradeOpen ? (
         <TradeSheetInline
           projectId={Number(id)}
@@ -143,11 +205,8 @@ export default function DetailPage() {
         />
       ) : null}
 
-      {/* Outer layout: use flex-1 (not h-full) so iOS Safari can correctly compute remaining height */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-
-        {/* ── Top nav bar ── */}
-        <div className="flex h-12 shrink-0 items-center gap-2 px-2">
+      {/* ── Top nav bar ── */}
+      <div className="sticky top-0 z-10 flex h-12 items-center gap-2 bg-base/95 px-2 backdrop-blur">
           <button
             type="button"
             className="rounded-lg p-2 text-text-secondary hover:bg-white/5"
@@ -188,7 +247,7 @@ export default function DetailPage() {
         </div>
 
         {/* ── Scrollable content ── */}
-        <div className="flex-1 overflow-y-auto pb-[72px]">
+        <div className="pb-4">
           {mainTab === 'market' ? (
             <MarketView p={p} t={t} />
           ) : (
@@ -452,85 +511,6 @@ export default function DetailPage() {
           )}
         </div>
 
-        {/* ── Sticky Buy / Sell bar ── */}
-        {mainTab === 'first' ? (
-          <div className="shrink-0 px-3 pb-5 pt-2.5" style={{ background: 'linear-gradient(to bottom, transparent, var(--color-base) 28%)' }}>
-            {/* Price ticker pill */}
-            <div className="mb-2.5 flex items-center justify-center gap-1.5">
-              <span className="text-[11px] tabular-nums text-text-secondary">
-                ${formatTokenFromRaw(price, locale, 4)}
-              </span>
-              {change !== 0 ? (
-                <span
-                  className={cn(
-                    'rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums',
-                    changePositive
-                      ? 'bg-success-500/15 text-success-400'
-                      : 'bg-danger-500/15 text-danger-400',
-                  )}
-                >
-                  {changeStr}
-                </span>
-              ) : null}
-              {!canTrade ? (
-                <span className="rounded-full bg-white/8 px-2 py-0.5 text-[10px] text-text-secondary">
-                  {tradeDisabledReason}
-                </span>
-              ) : null}
-            </div>
-
-            <div className="flex gap-2.5">
-              <button
-                type="button"
-                disabled={!canTrade}
-                onClick={() => openTrade('buy')}
-                className={cn(
-                  'relative flex flex-1 flex-col items-center justify-center overflow-hidden rounded-2xl py-3.5 transition-all active:scale-[0.97]',
-                  canTrade
-                    ? 'bg-success-500 text-white shadow-lg shadow-success-500/30'
-                    : 'bg-white/8 text-text-secondary',
-                )}
-              >
-                {canTrade ? (
-                  <span className="absolute inset-0 bg-gradient-to-br from-white/15 to-transparent" />
-                ) : null}
-                <span className="relative text-[15px] font-bold tracking-wide">
-                  {t('project.buy')}
-                </span>
-                {canTrade ? (
-                  <span className="relative mt-0.5 text-[10px] font-normal text-white/60">
-                    做多
-                  </span>
-                ) : null}
-              </button>
-
-              <button
-                type="button"
-                disabled={!canTrade}
-                onClick={() => openTrade('sell')}
-                className={cn(
-                  'relative flex flex-1 flex-col items-center justify-center overflow-hidden rounded-2xl py-3.5 transition-all active:scale-[0.97]',
-                  canTrade
-                    ? 'bg-warning-500 text-white shadow-lg shadow-warning-500/30'
-                    : 'bg-white/8 text-text-secondary',
-                )}
-              >
-                {canTrade ? (
-                  <span className="absolute inset-0 bg-gradient-to-br from-white/15 to-transparent" />
-                ) : null}
-                <span className="relative text-[15px] font-bold tracking-wide">
-                  {t('project.sell')}
-                </span>
-                {canTrade ? (
-                  <span className="relative mt-0.5 text-[10px] font-normal text-white/60">
-                    做空
-                  </span>
-                ) : null}
-              </button>
-            </div>
-          </div>
-        ) : null}
-      </div>
     </AppShell>
   );
 }

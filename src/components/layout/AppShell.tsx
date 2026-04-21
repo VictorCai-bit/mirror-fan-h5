@@ -8,14 +8,14 @@ export function AppShell({
   children,
   hideTab,
   creatorMode,
-  noScroll,
+  footer,
 }: {
   children: React.ReactNode;
   hideTab?: boolean;
   /** When true, show Creator gradient band under top bar (Studio routes only). */
   creatorMode?: boolean;
-  /** When true, <main> is overflow-hidden so the child can manage its own scroll. */
-  noScroll?: boolean;
+  /** Rendered below <main> but above the bottom tab bar — ideal for sticky action bars. */
+  footer?: React.ReactNode;
 }) {
   const loc = useLocation();
   const studio = loc.pathname.startsWith('/studio');
@@ -29,16 +29,8 @@ export function AppShell({
       >
         <TopBar />
         {showBand ? <CreatorBand /> : null}
-        <main
-          className={cn(
-            'min-h-0 flex-1',
-            noScroll
-              ? 'flex flex-col overflow-hidden'
-              : 'overflow-y-auto',
-          )}
-        >
-          {children}
-        </main>
+        <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
+        {footer ?? null}
         {hideTab ? null : <BottomTab />}
       </div>
     </div>
