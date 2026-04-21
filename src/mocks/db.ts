@@ -23,7 +23,7 @@ import {
 } from './factories/projects';
 import { MOCK_WORKS } from './factories/user';
 
-export const MOCK_DB_KEY = 'mockDb@v2';
+export const MOCK_DB_KEY = 'mockDb@v3';
 
 export interface ProgressPost {
   progress_id: string;
