@@ -2,14 +2,49 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+  1. Declare dark color-scheme so browser system colors (ButtonText, etc.)
+     resolve to their dark-mode variants.
+  2. Set an explicit default text color so <button>, <input>, <select> and
+     other replaced elements inherit a visible color instead of browser black.
+*/
+html {
+  color-scheme: dark;
+}
+
 html,
 body,
 #root {
   height: 100%;
   margin: 0;
   background: #0b0a1a;
+  color: #f4f4f5; /* = text-text-primary */
+}
+
+/* Ensure native interactive elements always inherit the page color */
+button,
+input,
+select,
+textarea,
+a {
+  color: inherit;
 }
 
 .tabular-nums {
   font-variant-numeric: tabular-nums;
+}
+
+/* Scrollbar: thin & transparent on dark backgrounds */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255 255 255 / 0.15) transparent;
+}
+
+/* Hide scrollbar on overflow-x scroll strips */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
