@@ -144,7 +144,11 @@ export default function FixedPricePage() {
   const [activeSale, setActiveSale] = useState<AdminFixedPriceSaleRow | null>(null);
   const [step, setStep] = useState<SheetStep>('amount');
   const [amountStr, setAmountStr] = useState('');
-  const [previewData, setPreviewData] = useState<{ estimated_token_raw: string; usdt_raw: string } | null>(null);
+  const [previewData, setPreviewData] = useState<{
+    token_raw: string;
+    first_unlock_at: number;
+    slices: { bps: number; amount_raw: string }[];
+  } | null>(null);
 
   const { data: detail } = useQuery({
     queryKey: ['launch', 'on-chain', 'detail', id],
@@ -160,21 +164,27 @@ export default function FixedPricePage() {
 
   const previewM = useMutation({
     mutationFn: () =>
-      apiFetch<{ estimated_token_raw: string; usdt_raw: string }>('/rwa/fixed-price/subscribe/preview', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sale_id: activeSale?.id, usdt_raw: String(Math.floor(parseFloat(amountStr || '0') * 1e6)) }),
-      }),
+      apiFetch<{ token_raw: string; first_unlock_at: number; slices: { bps: number; amount_raw: string }[] }>(
+        `/rwa/fixed-price/sales/${activeSale!.id}/subscribe/preview`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ usdt_raw: String(Math.floor(parseFloat(amountStr || '0') * 1e6)) }),
+        },
+      ),
     onSuccess: (d) => { setPreviewData(d); setStep('preview'); },
     onError: (e) => toast.error(e instanceof ApiError ? e.msg : String(e)),
   });
 
   const confirmM = useMutation({
     mutationFn: () =>
-      apiFetch('/rwa/fixed-price/subscribe/confirm', {
+      apiFetch(`/rwa/fixed-price/sales/${activeSale!.id}/subscribe/confirm`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sale_id: activeSale?.id, usdt_raw: String(Math.floor(parseFloat(amountStr || '0') * 1e6)) }),
+        body: JSON.stringify({
+          usdt_raw: String(Math.floor(parseFloat(amountStr || '0') * 1e6)),
+          client_order_id: crypto.randomUUID(),
+        }),
       }),
     onSuccess: async () => {
       toast.success('认购成功');
@@ -321,7 +331,7 @@ export default function FixedPricePage() {
                     <div className="flex justify-between">
                       <span className="text-text-secondary">获得（进入 Vesting）</span>
                       <span className="tabular-nums font-bold text-success-400">
-                        {formatTokenFromRaw(previewData.estimated_token_raw, locale, 2)} {symbol}
+                        {formatTokenFromRaw(previewData.token_raw, locale, 2)} {symbol}
                       </span>
                     </div>
                     <div className="flex justify-between">
