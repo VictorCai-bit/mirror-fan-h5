@@ -6,7 +6,7 @@ import { NavLink } from 'react-router-dom';
 export function BottomTab() {
   const { t } = useTranslation();
   return (
-    <nav className="grid h-14 shrink-0 grid-cols-3 border-t border-white/10 bg-base/95 pb-[env(safe-area-inset-bottom)] pt-1 text-[10px] text-text-secondary backdrop-blur">
+    <nav className="grid h-14 shrink-0 grid-cols-3 border-t border-white/10 bg-canvas/95 pb-[env(safe-area-inset-bottom)] pt-1 text-[10px] text-text-secondary backdrop-blur">
       <NavLink
         to="/"
         className={({ isActive }) =>

@@ -271,7 +271,7 @@ export default function VestingPage() {
 
         {/* Sticky batch claim bar */}
         {sel.length > 0 ? (
-          <div className="fixed inset-x-0 bottom-0 bg-bg/90 px-4 pb-safe pt-3 backdrop-blur-md">
+          <div className="fixed inset-x-0 bottom-0 bg-canvas/90 px-4 pb-safe pt-3 backdrop-blur-md">
             <div className="mb-2 flex items-center justify-between text-xs text-text-secondary">
               <span>已选 <span className="font-bold text-text-primary">{sel.length}</span> 条</span>
             </div>

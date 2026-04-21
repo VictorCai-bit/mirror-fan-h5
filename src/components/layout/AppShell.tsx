@@ -24,7 +24,7 @@ export function AppShell({
     <div className="app-shell-root flex justify-center bg-black">
       <div
         className={cn(
-          'app-shell-frame relative flex w-full max-w-[375px] flex-col overflow-hidden bg-base text-text-primary shadow-2xl',
+          'app-shell-frame relative flex w-full max-w-[375px] flex-col overflow-hidden bg-canvas text-text-primary shadow-2xl',
         )}
       >
         <TopBar />

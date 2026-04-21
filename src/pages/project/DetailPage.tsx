@@ -133,11 +133,11 @@ export default function DetailPage() {
 
   const buySellFooter = mainTab === 'first' ? (
     <div
-      className="absolute inset-x-0 bottom-0 z-20 bg-base px-3 pt-2.5"
+      className="absolute inset-x-0 bottom-0 z-20 bg-canvas px-3 pt-2.5"
       style={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom, 0px))' }}
     >
       {/* fade edge */}
-      <div className="pointer-events-none absolute inset-x-0 -top-8 h-8 bg-gradient-to-b from-transparent to-base" />
+      <div className="pointer-events-none absolute inset-x-0 -top-8 h-8 bg-gradient-to-b from-transparent to-canvas" />
       {/* Price ticker pill */}
       <div className="mb-2.5 flex items-center justify-center gap-1.5">
         <span className="text-[11px] tabular-nums text-text-secondary">
@@ -209,7 +209,7 @@ export default function DetailPage() {
       ) : null}
 
       {/* ── Top nav bar ── */}
-      <div className="sticky top-0 z-10 flex h-12 items-center gap-2 bg-base/95 px-2 backdrop-blur">
+      <div className="sticky top-0 z-10 flex h-12 items-center gap-2 bg-canvas/95 px-2 backdrop-blur">
           <button
             type="button"
             className="rounded-lg p-2 text-text-secondary hover:bg-white/5"
@@ -263,7 +263,7 @@ export default function DetailPage() {
                   alt=""
                   className="h-full w-full object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-base/95" />
+                <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-canvas/95" />
                 {/* Overlaid info */}
                 <div className="absolute bottom-0 left-0 right-0 flex items-end justify-between px-4 pb-3">
                   <div>

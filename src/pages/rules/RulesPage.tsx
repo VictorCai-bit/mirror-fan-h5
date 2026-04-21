@@ -35,7 +35,7 @@ export default function RulesPage() {
           </section>
         ))}
         {fromWizard ? (
-          <div className="fixed bottom-0 left-0 right-0 z-20 mx-auto flex max-w-[375px] gap-2 border-t border-white/10 bg-base/95 p-3 backdrop-blur">
+          <div className="fixed bottom-0 left-0 right-0 z-20 mx-auto flex max-w-[375px] gap-2 border-t border-white/10 bg-canvas/95 p-3 backdrop-blur">
             <Button variant="secondary" className="flex-1" onClick={() => nav(-1)}>
               {t('rules.readOk')}
             </Button>

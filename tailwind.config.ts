@@ -5,9 +5,11 @@ export default {
   theme: {
     extend: {
       colors: {
-        /* App backgrounds */
-        bg: '#0B0A1A',      // alias for base — used in sticky bars etc.
-        base: '#0B0A1A',
+        /* App backgrounds. NOTE: we deliberately do not expose these as `base`
+           or `bg` because those names collide with Tailwind's built-in
+           `text-base` (font-size) / `bg-*` utilities and silently overwrite
+           font/text color utilities. Use `canvas` instead. */
+        canvas: '#0B0A1A',
         surface: '#14122A',
         elevated: '#1B1838',
 

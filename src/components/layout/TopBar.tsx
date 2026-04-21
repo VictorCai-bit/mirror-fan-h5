@@ -31,7 +31,7 @@ export function TopBar({ className }: { className?: string }) {
   return (
     <header
       className={cn(
-        'flex h-12 shrink-0 items-center justify-between gap-2 border-b border-white/10 bg-base/80 px-2 backdrop-blur',
+        'flex h-12 shrink-0 items-center justify-between gap-2 border-b border-white/10 bg-canvas/80 px-2 backdrop-blur',
         className,
       )}
     >
