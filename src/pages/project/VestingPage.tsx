@@ -5,6 +5,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { ApiError, apiFetch } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { formatTokenFromRaw } from '@/lib/fmt';
+import type { TFunction } from 'i18next';
 import type { UserVestingEntry } from '@/types/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft, CheckCircle2, Lock, Clock } from 'lucide-react';
@@ -16,14 +17,6 @@ import { RequireInvestor } from '@/routes/guards';
 
 type SourceFilter = 'all' | 'airdrop' | 'fixed_price' | 'exchange';
 
-const SOURCE_LABELS: Record<string, string> = {
-  airdrop: '空投',
-  fixed_price: '固定认购',
-  exchange: '积分兑换',
-  exchange_converted: '积分兑换',
-  admin_grant: '额外增发',
-};
-
 const SOURCE_COLORS: Record<string, string> = {
   airdrop: 'bg-accent-500/15 text-accent-400',
   fixed_price: 'bg-purple-500/15 text-purple-400',
@@ -32,14 +25,14 @@ const SOURCE_COLORS: Record<string, string> = {
   admin_grant: 'bg-warning-500/15 text-warning-400',
 };
 
-function fmtCountdown(secs: number): string {
+function fmtCountdown(secs: number, t: TFunction): string {
   if (secs <= 0) return '';
   const d = Math.floor(secs / 86400);
   const h = Math.floor((secs % 86400) / 3600);
   const m = Math.floor((secs % 3600) / 60);
-  if (d > 0) return `${d}天 ${h}h`;
-  if (h > 0) return `${h}h ${m}m`;
-  return `${m}m`;
+  if (d > 0) return t('vestingPage.countdownDayHour', { d, h });
+  if (h > 0) return t('vestingPage.countdownHm', { h, m });
+  return t('vestingPage.countdownM', { m });
 }
 
 function VestingCard({
@@ -53,10 +46,13 @@ function VestingCard({
   onToggle: () => void;
   locale: string;
 }) {
+  const { t } = useTranslation();
   const now = Math.floor(Date.now() / 1000);
   const unlocked = v.unlock_at <= now;
   const remaining = v.unlock_at - now;
-  const srcLabel = SOURCE_LABELS[v.source] ?? v.source;
+  const srcLabel = t(`vestingPage.source.${v.source}` as 'vestingPage.source.airdrop', {
+    defaultValue: v.source,
+  });
   const srcColor = SOURCE_COLORS[v.source] ?? 'bg-white/8 text-text-secondary';
 
   return (
@@ -94,15 +90,15 @@ function VestingCard({
             </span>
             {v.claimed ? (
               <span className="rounded-full bg-success-500/15 px-2 py-0.5 text-[10px] text-success-400">
-                已领取
+                {t('vestingPage.status.claimed')}
               </span>
             ) : unlocked ? (
               <span className="rounded-full bg-primary-500/15 px-2 py-0.5 text-[10px] text-primary-400">
-                可领取
+                {t('vestingPage.status.claimable')}
               </span>
             ) : (
               <span className="flex items-center gap-1 rounded-full bg-white/8 px-2 py-0.5 text-[10px] text-text-secondary">
-                <Lock className="size-2.5" /> 锁定中
+                <Lock className="size-2.5" /> {t('vestingPage.status.locking')}
               </span>
             )}
           </div>
@@ -116,12 +112,23 @@ function VestingCard({
             <Clock className="size-2.5" />
             {unlocked ? (
               <span>
-                {new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(v.unlock_at * 1000))} 解锁
+                {t('vestingPage.unlocksAt', {
+                  time: new Intl.DateTimeFormat(locale, {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  }).format(new Date(v.unlock_at * 1000)),
+                })}
               </span>
             ) : (
               <span className="tabular-nums">
-                剩余 {fmtCountdown(remaining)} (
-                {new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric' }).format(new Date(v.unlock_at * 1000))})
+                {t('vestingPage.remaining', {
+                  cd: fmtCountdown(remaining, t),
+                  date: new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric' }).format(
+                    new Date(v.unlock_at * 1000),
+                  ),
+                })}
               </span>
             )}
           </div>
@@ -201,30 +208,29 @@ export default function VestingPage() {
             </button>
             <h1 className="flex-1 text-base font-semibold">{t('project.vesting')} · {symbol}</h1>
             {totalCount > 0 ? (
-              <span className="text-xs text-text-secondary">{claimedCount}/{totalCount} 已领</span>
+              <span className="text-xs text-text-secondary">
+                {t('vestingPage.headerClaimed', { claimed: claimedCount, total: totalCount })}
+              </span>
             ) : null}
           </div>
 
           {/* Source filter chips */}
           <div className="flex gap-1.5 overflow-x-auto px-3 py-2 no-scrollbar">
-            {(['all', 'airdrop', 'fixed_price', 'exchange'] as SourceFilter[]).map((f) => {
-              const labels = { all: '全部', airdrop: '空投', fixed_price: '固定认购', exchange: '积分兑换' };
-              return (
-                <button
-                  key={f}
-                  type="button"
-                  onClick={() => setSourceFilter(f)}
-                  className={cn(
-                    'shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-colors',
-                    sourceFilter === f
-                      ? 'bg-primary-500 text-white'
-                      : 'bg-white/8 text-text-secondary hover:bg-white/12',
-                  )}
-                >
-                  {labels[f]}
-                </button>
-              );
-            })}
+            {(['all', 'airdrop', 'fixed_price', 'exchange'] as SourceFilter[]).map((f) => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => setSourceFilter(f)}
+                className={cn(
+                  'shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-colors',
+                  sourceFilter === f
+                    ? 'bg-primary-500 text-white'
+                    : 'bg-white/8 text-text-secondary hover:bg-white/12',
+                )}
+              >
+                {t(`vestingPage.filter.${f}` as 'vestingPage.filter.all')}
+              </button>
+            ))}
           </div>
 
           {/* Select all unlocked */}
@@ -235,7 +241,7 @@ export default function VestingPage() {
                 onClick={() => setSel(unlockedUnclaimed.map((r) => r.id))}
                 className="text-xs font-medium text-primary-400 hover:text-primary-300"
               >
-                全选 {unlockedUnclaimed.length} 个可领取
+                {t('vestingPage.selectAll', { n: unlockedUnclaimed.length })}
               </button>
             </div>
           ) : sel.length > 0 ? (
@@ -245,7 +251,7 @@ export default function VestingPage() {
                 onClick={() => setSel([])}
                 className="text-xs font-medium text-text-secondary hover:text-text-primary"
               >
-                取消全选
+                {t('vestingPage.deselectAll')}
               </button>
             </div>
           ) : null}
@@ -254,7 +260,7 @@ export default function VestingPage() {
             {isPending ? (
               [0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-20 rounded-2xl" />)
             ) : filtered.length === 0 ? (
-              <p className="py-10 text-center text-sm text-text-secondary">暂无 Vesting 记录</p>
+              <p className="py-10 text-center text-sm text-text-secondary">{t('vestingPage.empty')}</p>
             ) : (
               filtered.map((v) => (
                 <VestingCard
@@ -273,10 +279,10 @@ export default function VestingPage() {
         {sel.length > 0 ? (
           <div className="fixed inset-x-0 bottom-0 bg-canvas/90 px-4 pb-safe pt-3 backdrop-blur-md">
             <div className="mb-2 flex items-center justify-between text-xs text-text-secondary">
-              <span>已选 <span className="font-bold text-text-primary">{sel.length}</span> 条</span>
+              <span>{t('vestingPage.selected', { n: sel.length })}</span>
             </div>
             <Button className="w-full" loading={pBatch.isPending} onClick={() => pBatch.mutate()}>
-              预览批量领取
+              {t('vestingPage.previewBatch')}
             </Button>
           </div>
         ) : null}
@@ -285,26 +291,28 @@ export default function VestingPage() {
         <BottomSheet
           open={!!preview}
           onClose={() => setPreview(null)}
-          title="确认批量领取"
+          title={t('vestingPage.batchTitle')}
         >
           {preview && (
             <div className="space-y-3 pb-4">
               <div className="rounded-2xl bg-surface p-4 space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-text-secondary">领取数量</span>
-                  <span className="font-bold tabular-nums">{preview.count} 条</span>
+                  <span className="text-text-secondary">{t('vestingPage.claimCount')}</span>
+                  <span className="font-bold tabular-nums">{t('vestingPage.rowsUnit', { n: preview.count })}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-text-secondary">合计代币</span>
+                  <span className="text-text-secondary">{t('vestingPage.totalToken')}</span>
                   <span className="font-bold tabular-nums text-success-400">
                     {formatTokenFromRaw(preview.total_amount_raw, locale, 4)} {symbol}
                   </span>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <Button variant="secondary" onClick={() => setPreview(null)}>取消</Button>
+                <Button variant="secondary" onClick={() => setPreview(null)}>
+                  {t('common.cancel')}
+                </Button>
                 <Button loading={cBatch.isPending} onClick={() => cBatch.mutate()}>
-                  确认领取
+                  {t('vestingPage.confirmClaim')}
                 </Button>
               </div>
             </div>

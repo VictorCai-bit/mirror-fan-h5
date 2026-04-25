@@ -67,7 +67,7 @@ function TeamUpSheet({
             <Input
               value={uid1}
               onChange={(e) => setUid1(e.target.value.trim())}
-              placeholder="UID / 钱包地址"
+              placeholder={t('airdrop.inviteMemberPlaceholder')}
             />
           </label>
           <label className="flex flex-col gap-1">
@@ -75,7 +75,7 @@ function TeamUpSheet({
             <Input
               value={uid2}
               onChange={(e) => setUid2(e.target.value.trim())}
-              placeholder="UID / 钱包地址"
+              placeholder={t('airdrop.inviteMemberPlaceholder')}
             />
           </label>
         </div>

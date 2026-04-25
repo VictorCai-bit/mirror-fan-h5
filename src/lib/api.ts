@@ -25,6 +25,16 @@ function readPersisted<T>(key: string): T | null {
   }
 }
 
+/** i18next `lookupLocalStorage: 'lng'` — used by MSW to pick mock copy locale. */
+function readMockLngHeader(): string {
+  if (typeof window === 'undefined') return 'zh-CN';
+  try {
+    return localStorage.getItem('lng') ?? 'zh-CN';
+  } catch {
+    return 'zh-CN';
+  }
+}
+
 export function buildMockHeaders(): HeadersInit {
   const user = readPersisted<{
     uid: string | null;
@@ -43,6 +53,7 @@ export function buildMockHeaders(): HeadersInit {
   if (user?.usdt_raw) h['x-mock-usdt-raw'] = user.usdt_raw;
   if (user?.ent_raw) h['x-mock-ent-raw'] = user.ent_raw;
   if (ui?.always500) h['x-mock-always-500'] = '1';
+  h['x-mock-lng'] = readMockLngHeader();
   return h;
 }
 

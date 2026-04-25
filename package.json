@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite --port 5173",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "i18n:check": "npx tsx scripts/i18n-check.mts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.56.0",
@@ -37,6 +38,7 @@
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.41",
     "tailwindcss": "^3.4.10",
+    "tsx": "^4.19.2",
     "typescript": "^5.5.4",
     "vite": "^5.4.2"
   },

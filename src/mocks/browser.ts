@@ -1,5 +1,6 @@
 import { setupWorker } from 'msw/browser';
 import { adminHandlers } from './handlers/admin';
+import { coBuilderHandlers } from './handlers/coBuilder';
 import { creatorHandlers } from './handlers/creator';
 import { investorHandlers } from './handlers/investor';
 import { publicHandlers } from './handlers/public';
@@ -11,4 +12,5 @@ export const worker = setupWorker(
   ...creatorHandlers,
   ...adminHandlers,
   ...uploadHandlers,
+  ...coBuilderHandlers,
 );

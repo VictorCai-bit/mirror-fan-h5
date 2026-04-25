@@ -4,7 +4,10 @@ import HomePage from '@/pages/home/HomePage';
 import SearchPage from '@/pages/home/SearchPage';
 import NotificationsPage from '@/pages/notifications/NotificationsPage';
 import PromotionPage from '@/pages/placeholders/PromotionPage';
-import VipPage from '@/pages/placeholders/VipPage';
+import BuyPage from '@/pages/co-builder/BuyPage';
+import MemberCenterPage from '@/pages/co-builder/MemberCenterPage';
+import FloatContributionPage from '@/pages/co-builder/FloatContributionPage';
+import CommunityPage from '@/pages/co-builder/CommunityPage';
 import AirdropPage from '@/pages/project/AirdropPage';
 import DetailPage from '@/pages/project/DetailPage';
 import DisclosurePage from '@/pages/project/DisclosurePage';
@@ -49,7 +52,7 @@ import { DebugSheet } from '@/components/sheets/DebugSheet';
 import { LanguageSheet } from '@/components/sheets/LanguageSheet';
 import { ProfileSheet } from '@/components/sheets/ProfileSheet';
 import { RequireInvestorOutlet } from '@/routes/guards';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
 export function App() {
   return (
@@ -58,7 +61,12 @@ export function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/search" element={<SearchPage />} />
-          <Route path="/vip" element={<VipPage />} />
+          <Route path="/vip" element={<Navigate to="/co-builder/buy" replace />} />
+          <Route path="/co-builder" element={<Navigate to="/co-builder/buy" replace />} />
+          <Route path="/co-builder/buy" element={<BuyPage />} />
+          <Route path="/co-builder/member" element={<MemberCenterPage />} />
+          <Route path="/co-builder/member/float" element={<FloatContributionPage />} />
+          <Route path="/co-builder/community" element={<CommunityPage />} />
           <Route path="/promotion" element={<PromotionPage />} />
           <Route path="/project/:id" element={<DetailPage />} />
           <Route path="/project/:id/trade" element={<TradePage />} />

@@ -11,15 +11,15 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 
-const STATUS_CONFIG: Record<MilestoneNodeStatus, { icon: React.ReactNode; color: string; label: string }> = {
-  claimable:      { icon: <CheckCircle2 className="size-4" />, color: 'text-success-400', label: '可提取' },
-  unlocked:       { icon: <CheckCircle2 className="size-4" />, color: 'text-success-400', label: '已解锁' },
-  public_display: { icon: <Clock className="size-4 animate-pulse" />, color: 'text-info-400', label: '公示中' },
-  approved:       { icon: <CheckCircle2 className="size-4" />, color: 'text-success-400', label: '已通过' },
-  submitted:      { icon: <Clock className="size-4" />, color: 'text-warning-400', label: '审核中' },
-  pending_review: { icon: <Clock className="size-4" />, color: 'text-warning-400', label: '待审核' },
-  rejected:       { icon: <XCircle className="size-4" />, color: 'text-danger-400', label: '已驳回' },
-  empty:          { icon: <Circle className="size-4" />, color: 'text-text-secondary/40', label: '未达到' },
+const STATUS_CONFIG: Record<MilestoneNodeStatus, { icon: React.ReactNode; color: string }> = {
+  claimable:      { icon: <CheckCircle2 className="size-4" />, color: 'text-success-400' },
+  unlocked:       { icon: <CheckCircle2 className="size-4" />, color: 'text-success-400' },
+  public_display: { icon: <Clock className="size-4 animate-pulse" />, color: 'text-info-400' },
+  approved:       { icon: <CheckCircle2 className="size-4" />, color: 'text-success-400' },
+  submitted:      { icon: <Clock className="size-4" />, color: 'text-warning-400' },
+  pending_review: { icon: <Clock className="size-4" />, color: 'text-warning-400' },
+  rejected:       { icon: <XCircle className="size-4" />, color: 'text-danger-400' },
+  empty:          { icon: <Circle className="size-4" />, color: 'text-text-secondary/40' },
 };
 
 function NodeCountdown({ endAt }: { endAt: number }) {
@@ -29,10 +29,12 @@ function NodeCountdown({ endAt }: { endAt: number }) {
 }
 
 function MilestoneNode({ node, isLast, locale }: { node: MilestoneProjectNode; isLast: boolean; locale: string }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(
     node.status === 'public_display' || node.status === 'claimable'
   );
   const cfg = STATUS_CONFIG[node.status] ?? STATUS_CONFIG.empty;
+  const statusLabel = t(`milestonesPage.nodeStatus.${node.status}`, { defaultValue: node.status });
   const hasDetail = node.description || (node.evidence && node.evidence.length > 0) || node.status === 'public_display';
 
   return (
@@ -66,13 +68,15 @@ function MilestoneNode({ node, isLast, locale }: { node: MilestoneProjectNode; i
         >
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-semibold text-text-secondary">节点 {node.node_index}</span>
+              <span className="text-xs font-semibold text-text-secondary">
+                {t('milestonesPage.node', { n: node.node_index })}
+              </span>
               <span className="text-sm font-medium">{node.title}</span>
             </div>
             <div className="mt-0.5 flex items-center gap-2 text-[10px]">
-              <span className={cn('font-medium', cfg.color)}>{cfg.label}</span>
+              <span className={cn('font-medium', cfg.color)}>{statusLabel}</span>
               <span className="text-text-secondary tabular-nums">
-                {formatPercentFromBps(node.bps, locale)} 资金
+                {t('milestonesPage.fundLine', { pct: formatPercentFromBps(node.bps, locale) })}
               </span>
             </div>
           </div>
@@ -86,14 +90,14 @@ function MilestoneNode({ node, isLast, locale }: { node: MilestoneProjectNode; i
             {node.status === 'public_display' && node.public_display_until ? (
               <div className="flex items-center gap-2 rounded-xl bg-info-500/10 px-3 py-2 text-xs">
                 <Clock className="size-3.5 text-info-400" />
-                <span className="text-text-secondary">公示倒计时：</span>
+                <span className="text-text-secondary">{t('milestonesPage.publicCountdown')}</span>
                 <NodeCountdown endAt={node.public_display_until} />
               </div>
             ) : null}
 
             {node.status === 'rejected' && node.description ? (
               <div className="rounded-xl bg-danger-500/10 px-3 py-2 text-xs text-danger-400">
-                驳回原因：{node.description}
+                {t('milestonesPage.rejectReason', { reason: node.description })}
               </div>
             ) : node.description ? (
               <p className="text-xs text-text-secondary">{node.description}</p>
@@ -101,7 +105,7 @@ function MilestoneNode({ node, isLast, locale }: { node: MilestoneProjectNode; i
 
             {node.evidence && node.evidence.length > 0 ? (
               <div>
-                <p className="mb-1.5 text-[10px] font-medium text-text-secondary">凭证</p>
+                <p className="mb-1.5 text-[10px] font-medium text-text-secondary">{t('milestonesPage.evidence')}</p>
                 <div className="flex flex-wrap gap-2">
                   {node.evidence.map((ev, idx) =>
                     ev.type === 'image' ? (
@@ -174,8 +178,10 @@ export default function MilestonesPage() {
         {!isPending && nodes.length > 0 ? (
           <div className="mx-3 mb-3 rounded-2xl bg-surface p-3">
             <div className="mb-1.5 flex items-center justify-between text-xs">
-              <span className="text-text-secondary">创作进度</span>
-              <span className="font-semibold text-success-400">{unlockedCount} / {nodes.length} 节点已解锁</span>
+              <span className="text-text-secondary">{t('milestonesPage.creationProgress')}</span>
+              <span className="font-semibold text-success-400">
+                {t('milestonesPage.nodesUnlocked', { unlocked: unlockedCount, total: nodes.length })}
+              </span>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-white/10">
               <div
@@ -183,7 +189,9 @@ export default function MilestonesPage() {
                 style={{ width: `${progressPct}%` }}
               />
             </div>
-            <p className="mt-1 text-[10px] tabular-nums text-text-secondary">{progressPct}% 资金已释放</p>
+            <p className="mt-1 text-[10px] tabular-nums text-text-secondary">
+              {t('milestonesPage.fundReleased', { pct: progressPct })}
+            </p>
           </div>
         ) : null}
 
@@ -195,7 +203,7 @@ export default function MilestonesPage() {
               ))}
             </div>
           ) : nodes.length === 0 ? (
-            <p className="py-10 text-center text-sm text-text-secondary">暂无里程碑数据</p>
+            <p className="py-10 text-center text-sm text-text-secondary">{t('milestonesPage.empty')}</p>
           ) : (
             nodes.map((node, idx) => (
               <MilestoneNode

@@ -80,7 +80,7 @@ export default function BillsPage() {
             </button>
             <h1 className="flex-1 text-base font-semibold">{t('wallet.bills')}</h1>
             {data ? (
-              <span className="text-xs text-text-secondary">{data.length} 条</span>
+              <span className="text-xs text-text-secondary">{t('wallet.billCount', { n: data.length })}</span>
             ) : null}
           </div>
 

@@ -22,19 +22,6 @@ const STATUS_DOT: Record<string, string> = {
   abandoned: 'bg-white/20',
 };
 
-const STATUS_LABEL: Record<string, string> = {
-  curve_active: 'Casting',
-  on_chain: 'Coming',
-  migrated: 'On Meteora',
-  curve_completed: 'Completed',
-  migrating: 'Migrating',
-  pending_review: 'In Review',
-  approved: 'Approved',
-  rejected: 'Rejected',
-  draft: 'Draft',
-  cancelled: 'Cancelled',
-  abandoned: 'Abandoned',
-};
 
 function computeMktCap(totalSoldRaw: string | undefined, currentPriceRaw: string | undefined): number {
   if (!totalSoldRaw || !currentPriceRaw) return 0;
@@ -42,7 +29,7 @@ function computeMktCap(totalSoldRaw: string | undefined, currentPriceRaw: string
 }
 
 export function ProjectCard({ item }: { item: OnChainDetail }) {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const nav = useNavigate();
   const locale = i18n.language;
 
@@ -67,7 +54,7 @@ export function ProjectCard({ item }: { item: OnChainDetail }) {
         }).format(mktCap)
       : '—';
 
-  const statusLabel = STATUS_LABEL[item.status] ?? item.status;
+  const statusLabel = t(`status.${item.status}` as 'status.draft', { defaultValue: item.status });
   const statusDot = STATUS_DOT[item.status] ?? 'bg-white/20';
   const progressPct = Math.min(100, (item.progress_bps ?? 0) / 100);
 
@@ -133,7 +120,7 @@ export function ProjectCard({ item }: { item: OnChainDetail }) {
         {/* Countdown top-right (if airdrop) */}
         {item.airdrop_phase?.end_at ? (
           <div className="shrink-0 text-right">
-            <p className="text-[9px] text-text-secondary">空投</p>
+            <p className="text-[9px] text-text-secondary">{t('project.airdrop')}</p>
             <CountdownBadge endAt={item.airdrop_phase.end_at} />
           </div>
         ) : null}
@@ -142,17 +129,17 @@ export function ProjectCard({ item }: { item: OnChainDetail }) {
       {/* Row 2: stats */}
       <div className="mt-3 grid grid-cols-3 text-[10px]">
         <div>
-          <p className="text-text-secondary">24h 买入</p>
+          <p className="text-text-secondary">{t('project.volume24h')}</p>
           <p className="tabular-nums font-medium text-text-primary">
             {formatUsdtFromRaw(item.volume_24h_raw ?? '0', locale)}
           </p>
         </div>
         <div className="text-center">
-          <p className="text-text-secondary">市值</p>
+          <p className="text-text-secondary">{t('project.mcap')}</p>
           <p className="tabular-nums font-medium text-text-primary">{mktCapFmt}</p>
         </div>
         <div className="text-right">
-          <p className="text-text-secondary">持有者</p>
+          <p className="text-text-secondary">{t('project.holderCount')}</p>
           <p className="tabular-nums font-medium text-text-primary">
             {(item.holder_count ?? 0).toLocaleString(locale)}
           </p>
@@ -169,11 +156,16 @@ export function ProjectCard({ item }: { item: OnChainDetail }) {
         </div>
         <div className="mt-1 flex items-center justify-between text-[10px]">
           <span className="text-text-secondary tabular-nums">
-            {formatPercentFromBps(item.progress_bps ?? 0, locale)} 公募进度
+            {t('project.listCardProgress', {
+              pct: formatPercentFromBps(item.progress_bps ?? 0, locale),
+            })}
           </span>
           {userBalanceRaw && Number(userBalanceRaw) > 0 ? (
             <span className="text-primary-500 tabular-nums">
-              持有 {formatTokenFromRaw(userBalanceRaw, locale, 2)} {item.symbol}
+              {t('project.listCardYouHold', {
+                amount: formatTokenFromRaw(userBalanceRaw, locale, 2),
+                symbol: item.symbol,
+              })}
             </span>
           ) : null}
         </div>

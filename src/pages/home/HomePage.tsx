@@ -17,28 +17,10 @@ const ALL_TYPES: WorkType[] = ['Fiction', 'Music', 'Cartoon', 'Movie', 'Film', '
 const SORT_OPTIONS = ['featured', 'new', 'hot', 'volume'] as const;
 type SortOption = (typeof SORT_OPTIONS)[number];
 
-const BANNERS = [
-  {
-    key: 'b1',
-    title: '创作者收益',
-    body: '张大师本月 +$12,400 · 《黑神话》IP 积分昨日发放 5,000,000',
-    from: 'from-accent-500/40',
-    to: 'to-primary-500/20',
-  },
-  {
-    key: 'b2',
-    title: 'Mirror.fan 全新上线',
-    body: 'RWA 赋能文娱 IP 资产化，共享创作价值',
-    from: 'from-info-500/40',
-    to: 'to-accent-500/10',
-  },
-  {
-    key: 'b3',
-    title: 'HSHW 涨幅 +12.5%',
-    body: '当前价格 $0.1100 · 持有者 99,234',
-    from: 'from-success-500/30',
-    to: 'to-accent-500/10',
-  },
+const BANNER_SLIDES = [
+  { key: 'b1' as const, from: 'from-accent-500/40', to: 'to-primary-500/20' },
+  { key: 'b2' as const, from: 'from-info-500/40', to: 'to-accent-500/10' },
+  { key: 'b3' as const, from: 'from-success-500/30', to: 'to-accent-500/10' },
 ] as const;
 
 export default function HomePage() {
@@ -54,7 +36,7 @@ export default function HomePage() {
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const timer = setInterval(() => setBannerIdx((i) => (i + 1) % BANNERS.length), 4000);
+    const timer = setInterval(() => setBannerIdx((i) => (i + 1) % BANNER_SLIDES.length), 4000);
     return () => clearInterval(timer);
   }, []);
 
@@ -103,7 +85,7 @@ export default function HomePage() {
     return () => obs.disconnect();
   }, [handleSentinel]);
 
-  const banner = BANNERS[bannerIdx] ?? BANNERS[0];
+  const banner = BANNER_SLIDES[bannerIdx] ?? BANNER_SLIDES[0];
 
   return (
     <AppShell>
@@ -130,14 +112,16 @@ export default function HomePage() {
                 className="absolute inset-0 flex flex-col justify-center px-4"
               >
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-white/50">
-                  {banner.title}
+                  {t(`home.bannerSlide.${banner.key}.title` as 'home.bannerSlide.b1.title')}
                 </p>
-                <p className="mt-1 text-sm font-medium leading-snug text-white/90">{banner.body}</p>
+                <p className="mt-1 text-sm font-medium leading-snug text-white/90">
+                  {t(`home.bannerSlide.${banner.key}.body` as 'home.bannerSlide.b1.body')}
+                </p>
               </motion.div>
             </AnimatePresence>
             {/* Dot indicators */}
             <div className="absolute bottom-2.5 right-3 flex gap-1">
-              {BANNERS.map((b, i) => (
+              {BANNER_SLIDES.map((b, i) => (
                 <button
                   key={b.key}
                   type="button"

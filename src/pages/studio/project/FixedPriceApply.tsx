@@ -10,6 +10,7 @@ import type { FixedPriceApplyBody, FixedPriceApplyRow } from '@/types/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft, Calendar } from 'lucide-react';
 import { useState } from 'react';
+import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -56,15 +57,8 @@ function displayTargetToRaw(val: string): string {
   return String(Math.round(n * 1_000_000));
 }
 
-/* ── slice period presets ──────────────────────────────────────────────── */
-const PERIOD_OPTIONS = [
-  { label: '7 天', value: 86400 * 7 },
-  { label: '14 天', value: 86400 * 14 },
-  { label: '30 天', value: 86400 * 30 },
-  { label: '60 天', value: 86400 * 60 },
-  { label: '90 天', value: 86400 * 90 },
-  { label: '180 天', value: 86400 * 180 },
-];
+/* ── slice period presets (seconds) ───────────────────────────────────── */
+const PERIOD_SECS = [86400 * 7, 86400 * 14, 86400 * 30, 86400 * 60, 86400 * 90, 86400 * 180] as const;
 
 /* ── initial state ─────────────────────────────────────────────────────── */
 function initialForm(projectId: number): FixedPriceApplyBody {
@@ -83,18 +77,18 @@ function initialForm(projectId: number): FixedPriceApplyBody {
   };
 }
 
-function validateForm(f: FixedPriceApplyBody): string | null {
-  if (!f.price_usdt_per_token_raw || BigInt(f.price_usdt_per_token_raw) <= 0n) return '单价不能为 0';
-  if (!f.target_usdt_raw || BigInt(f.target_usdt_raw) <= 0n) return '融资目标不能为 0';
-  if (!f.sale_start_unix) return '请选择认购开始时间';
-  if (!f.sale_end_unix)   return '请选择认购截止时间';
-  if (f.sale_end_unix <= f.sale_start_unix) return '截止时间需晚于开始时间';
+function validateForm(f: FixedPriceApplyBody, t: TFunction): string | null {
+  if (!f.price_usdt_per_token_raw || BigInt(f.price_usdt_per_token_raw) <= 0n) return t('fixedPriceApply.err.priceZero');
+  if (!f.target_usdt_raw || BigInt(f.target_usdt_raw) <= 0n) return t('fixedPriceApply.err.targetZero');
+  if (!f.sale_start_unix) return t('fixedPriceApply.err.pickSaleStart');
+  if (!f.sale_end_unix) return t('fixedPriceApply.err.pickSaleEnd');
+  if (f.sale_end_unix <= f.sale_start_unix) return t('fixedPriceApply.err.endAfterStart');
   const csvParts = f.vesting_percentages_bps_csv.split(',').map((x) => Number(x.trim()));
-  if (csvParts.length !== f.vesting_num_slices) return `CSV 应有 ${f.vesting_num_slices} 段`;
+  if (csvParts.length !== f.vesting_num_slices) return t('fixedPriceApply.err.csvSegments', { n: f.vesting_num_slices });
   const sum = csvParts.reduce((a, b) => a + b, 0);
-  if (sum !== 10_000) return `各期合计须等于 10000 bps（当前 ${sum}）`;
-  if (!f.vesting_start_unix) return '请选择 Vesting 开始时间';
-  if (f.vesting_start_unix < f.sale_end_unix) return 'Vesting 开始需晚于认购截止';
+  if (sum !== 10_000) return t('fixedPriceApply.err.bpsSum', { sum });
+  if (!f.vesting_start_unix) return t('fixedPriceApply.err.pickVestStart');
+  if (f.vesting_start_unix < f.sale_end_unix) return t('fixedPriceApply.err.vestAfterSale');
   return null;
 }
 
@@ -133,7 +127,7 @@ export default function StudioProjectFixedPriceApply() {
   });
 
   const set = (patch: Partial<FixedPriceApplyBody>) => setForm((f) => ({ ...f, ...patch }));
-  const err = validateForm(form);
+  const err = validateForm(form, t);
 
   return (
     <RequireCreator>
@@ -151,9 +145,9 @@ export default function StudioProjectFixedPriceApply() {
             {t('studio2.fp.todoC')}
           </p>
 
-          {/* ── 定价 & 融资 ── */}
-          <Section title="定价 & 融资">
-            <Field label="认购单价 (USDT / 代币)">
+          {/* Pricing & raise */}
+          <Section title={t('fixedPriceApply.sectionPrice')}>
+            <Field label={t('fixedPriceApply.priceField')}>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-secondary">$</span>
                 <Input
@@ -168,7 +162,7 @@ export default function StudioProjectFixedPriceApply() {
                 />
               </div>
             </Field>
-            <Field label="融资目标 (USDT)">
+            <Field label={t('fixedPriceApply.targetField')}>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-secondary">$</span>
                 <Input
@@ -185,15 +179,15 @@ export default function StudioProjectFixedPriceApply() {
             </Field>
           </Section>
 
-          {/* ── 认购时间窗口 ── */}
-          <Section title="认购时间窗口">
-            <Field label="开始时间">
+          {/* Sale window */}
+          <Section title={t('fixedPriceApply.sectionWindow')}>
+            <Field label={t('fixedPriceApply.startTime')}>
               <DateInput
                 value={unixToLocal(form.sale_start_unix)}
                 onChange={(v) => set({ sale_start_unix: localToUnix(v) })}
               />
             </Field>
-            <Field label="截止时间">
+            <Field label={t('fixedPriceApply.endTime')}>
               <DateInput
                 value={unixToLocal(form.sale_end_unix)}
                 min={unixToLocal(form.sale_start_unix)}
@@ -202,14 +196,14 @@ export default function StudioProjectFixedPriceApply() {
             </Field>
             {form.sale_start_unix > 0 && form.sale_end_unix > form.sale_start_unix && (
               <p className="col-span-2 text-[10px] text-text-secondary">
-                窗口时长：{Math.round((form.sale_end_unix - form.sale_start_unix) / 86400)} 天
+                {t('fixedPriceApply.windowDuration', { n: Math.round((form.sale_end_unix - form.sale_start_unix) / 86400) })}
               </p>
             )}
           </Section>
 
-          {/* ── Vesting 计划 ── */}
-          <Section title="Vesting 计划">
-            <Field label="分期数量">
+          {/* Vesting plan */}
+          <Section title={t('fixedPriceApply.sectionVesting')}>
+            <Field label={t('fixedPriceApply.slices')}>
               <Input
                 type="number"
                 min={1}
@@ -218,19 +212,21 @@ export default function StudioProjectFixedPriceApply() {
                 onChange={(e) => set({ vesting_num_slices: Math.max(1, Number(e.target.value) || 1) })}
               />
             </Field>
-            <Field label="每期间隔">
+            <Field label={t('fixedPriceApply.periodBetween')}>
               <select
                 value={String(form.vesting_slice_period_sec)}
                 onChange={(e) => set({ vesting_slice_period_sec: Number(e.target.value) })}
                 className="w-full rounded-xl bg-elevated px-3 py-2.5 text-sm text-text-primary ring-1 ring-white/10 focus:outline-none focus:ring-accent-500/50"
               >
-                {PERIOD_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
+                {PERIOD_SECS.map((sec) => (
+                  <option key={sec} value={sec}>
+                    {t('fixedPriceApply.periodDays', { n: sec / 86400 })}
+                  </option>
                 ))}
               </select>
             </Field>
             <div className="col-span-2">
-              <Field label={`各期释放比例 bps（逗号分隔，合计 10000，共 ${form.vesting_num_slices} 期）`}>
+              <Field label={t('fixedPriceApply.bpsField', { n: form.vesting_num_slices })}>
                 <Input
                   value={form.vesting_percentages_bps_csv}
                   onChange={(e) => set({ vesting_percentages_bps_csv: e.target.value })}
@@ -242,11 +238,12 @@ export default function StudioProjectFixedPriceApply() {
                   slices={form.vesting_num_slices}
                   periodSec={form.vesting_slice_period_sec}
                   startUnix={form.vesting_start_unix}
+                  locale={i18n.language}
                 />
               </Field>
             </div>
             <div className="col-span-2">
-              <Field label="Vesting 开始时间（需晚于认购截止）">
+              <Field label={t('fixedPriceApply.vestingStart')}>
                 <DateInput
                   value={unixToLocal(form.vesting_start_unix)}
                   min={unixToLocal(form.sale_end_unix)}
@@ -256,14 +253,14 @@ export default function StudioProjectFixedPriceApply() {
             </div>
           </Section>
 
-          {/* ── 备注 ── */}
-          <Section title="备注（给运营）">
+          {/* Note to ops */}
+          <Section title={t('fixedPriceApply.sectionNote')}>
             <div className="col-span-2">
               <textarea
                 value={form.note ?? ''}
                 onChange={(e) => set({ note: e.target.value })}
                 rows={3}
-                placeholder="可填写特殊说明，如分配比例调整原因…"
+                placeholder={t('fixedPriceApply.notePlaceholder')}
                 className="w-full rounded-xl bg-elevated px-3 py-2.5 text-sm text-text-primary ring-1 ring-white/10 focus:outline-none focus:ring-accent-500/50 resize-none"
               />
             </div>
@@ -278,7 +275,7 @@ export default function StudioProjectFixedPriceApply() {
             {t('studio2.fp.submit')}
           </Button>
 
-          {/* ── 申请记录 ── */}
+          {/* Application history */}
           <section>
             <p className="mb-2 text-xs font-semibold text-text-secondary">{t('studio2.fp.appliedList')}</p>
             {isPending ? <Skeleton className="h-24 w-full rounded-2xl" /> : null}
@@ -357,12 +354,15 @@ function VestingPreview({
   slices,
   periodSec,
   startUnix,
+  locale,
 }: {
   csv: string;
   slices: number;
   periodSec: number;
   startUnix: number;
+  locale: string;
 }) {
+  const { t } = useTranslation();
   const parts = csv.split(',').map((x) => Number(x.trim()));
   if (parts.length !== slices || parts.some(isNaN)) return null;
   const sum = parts.reduce((a, b) => a + b, 0);
@@ -371,11 +371,13 @@ function VestingPreview({
       {parts.map((bps, i) => {
         const unlockAt = startUnix ? startUnix + i * periodSec : 0;
         const dateStr = unlockAt
-          ? new Date(unlockAt * 1000).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', year: 'numeric' })
+          ? new Date(unlockAt * 1000).toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' })
           : '—';
         return (
           <div key={i} className="flex items-center justify-between text-[10px]">
-            <span className="text-text-secondary">第 {i + 1} 期 · {dateStr}</span>
+            <span className="text-text-secondary">
+              {t('fixedPriceApply.vestingRow', { i: i + 1, date: dateStr })}
+            </span>
             <span className={sum === 10000 ? 'text-success-400' : 'text-warning-400'}>
               {(bps / 100).toFixed(0)}%
             </span>
@@ -383,7 +385,7 @@ function VestingPreview({
         );
       })}
       {sum !== 10000 && (
-        <p className="text-[10px] text-danger-400">合计 {sum} bps ≠ 10000</p>
+        <p className="text-[10px] text-danger-400">{t('fixedPriceApply.bpsMismatch', { sum })}</p>
       )}
     </div>
   );

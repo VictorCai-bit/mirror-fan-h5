@@ -75,11 +75,11 @@ function detectOverlap(
 }
 
 /* ── state badge ─────────────────────────────────────────────────────── */
-const STATE_CONFIG: Record<string, { label: string; cls: string; icon: React.ReactNode } | undefined> = {
-  pending:   { label: '待开始（可编辑）', cls: 'bg-primary-500/15 text-primary-400', icon: <Clock className="size-3" /> },
-  active:    { label: '进行中（锁定）', cls: 'bg-accent-500/15 text-accent-400', icon: <CheckCircle2 className="size-3" /> },
-  ended:     { label: '已结束', cls: 'bg-text-secondary/15 text-text-secondary', icon: <Lock className="size-3" /> },
-  exhausted: { label: '积分已耗尽', cls: 'bg-warning-500/15 text-warning-400', icon: <AlertCircle className="size-3" /> },
+const STATE_CONFIG: Record<string, { cls: string; icon: React.ReactNode }> = {
+  pending:   { cls: 'bg-primary-500/15 text-primary-400', icon: <Clock className="size-3" /> },
+  active:    { cls: 'bg-accent-500/15 text-accent-400', icon: <CheckCircle2 className="size-3" /> },
+  ended:     { cls: 'bg-text-secondary/15 text-text-secondary', icon: <Lock className="size-3" /> },
+  exhausted: { cls: 'bg-warning-500/15 text-warning-400', icon: <AlertCircle className="size-3" /> },
 };
 
 /* ── PhaseEditorSheet ─────────────────────────────────────────────────── */
@@ -104,9 +104,9 @@ function PhaseEditorSheet({
   overlapId: number | null;
   symbol: string;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const set = (p: Partial<PhaseDraft>) => setDraft({ ...draft, ...p });
-  const ptsSymbol = symbol ? `${symbol}s` : '积分';
+  const ptsSymbol = symbol ? `${symbol}s` : t('airdropPhases.pointsDefault');
   const validDates = draft.end_at > draft.start_at;
 
   return (
@@ -140,13 +140,13 @@ function PhaseEditorSheet({
         </div>
 
         {!validDates ? (
-          <p className="text-[11px] text-danger-400">结束时间须晚于起始时间</p>
+          <p className="text-[11px] text-danger-400">{t('airdropPhases.endAfterStart')}</p>
         ) : overlapId ? (
           <p className="text-[11px] text-warning-400">{t('airdrop.overlap', { n: overlapId })}</p>
         ) : null}
 
         {/* Divider */}
-        <p className="text-[10px] font-medium text-text-secondary">每日积分奖励 ({ptsSymbol})</p>
+        <p className="text-[10px] font-medium text-text-secondary">{t('airdropPhases.dailyRewards', { symbol: ptsSymbol })}</p>
 
         <div className="grid grid-cols-2 gap-2">
           <FieldInput
@@ -160,7 +160,7 @@ function PhaseEditorSheet({
             onChange={(v) => set({ invite_per_day_amount: v })}
           />
           <FieldInput
-            label={`邀请上限 (人/日)`}
+            label={t('airdropPhases.inviteCap')}
             value={draft.invite_daily_cap}
             onChange={(v) => set({ invite_daily_cap: v })}
           />
@@ -170,7 +170,7 @@ function PhaseEditorSheet({
             onChange={(v) => set({ team_per_day_amount: v })}
           />
           <FieldInput
-            label="组队上限 (组/日)"
+            label={t('airdropPhases.teamCap')}
             value={draft.team_daily_cap}
             onChange={(v) => set({ team_daily_cap: v })}
           />
@@ -183,8 +183,15 @@ function PhaseEditorSheet({
 
         {/* Preview */}
         <div className="rounded-xl bg-white/5 px-3 py-2 text-[11px] text-text-secondary">
-          <span className="font-medium text-text-primary">预览：</span>
-          签到 {draft.daily_sign_amount} · 邀请 {draft.invite_per_day_amount} (上限 {draft.invite_daily_cap}) · 组队 {draft.team_per_day_amount} · 总量 {formatPoints(draft.total_points_cap, 'zh-CN')} {ptsSymbol}
+          <span className="font-medium text-text-primary">{t('airdropPhases.preview')}</span>{' '}
+          {t('airdropPhases.previewLine', {
+            sign: draft.daily_sign_amount,
+            inv: draft.invite_per_day_amount,
+            invCap: draft.invite_daily_cap,
+            team: draft.team_per_day_amount,
+            total: formatPoints(draft.total_points_cap, i18n.language),
+            sym: ptsSymbol,
+          })}
         </div>
 
         <div className="grid grid-cols-2 gap-2">
@@ -306,7 +313,7 @@ export default function StudioProjectAirdropPhases() {
       apiFetch(`/launch/project/${id}/airdrop/phases/${phaseId}`, { method: 'DELETE' }),
     onSuccess: async () => {
       await refresh();
-      toast.success('已删除');
+      toast.success(t('airdropPhases.deleted'));
     },
     onError: (e) => handleApiErr(e, t),
   });
@@ -351,7 +358,7 @@ export default function StudioProjectAirdropPhases() {
                 <div className="flex size-14 items-center justify-center rounded-full bg-white/8">
                   <Sparkle className="size-6 text-text-secondary/60" />
                 </div>
-                <p className="text-sm text-text-secondary">还没有空投阶段，点击右上角创建</p>
+                <p className="text-sm text-text-secondary">{t('airdropPhases.empty')}</p>
                 <Button onClick={openCreate}>
                   <Plus className="mr-1.5 size-4" />
                   {t('studio2.phases.addBtn')}
@@ -360,7 +367,10 @@ export default function StudioProjectAirdropPhases() {
             ) : (
               phases.map((ph) => {
                 const editable = ph.timeline_state === 'pending';
-                const stateCfg = STATE_CONFIG[ph.timeline_state] ?? { label: '已结束', cls: 'bg-text-secondary/15 text-text-secondary', icon: <Lock className="size-3" /> };
+                const stateCfg = (STATE_CONFIG[ph.timeline_state] ?? STATE_CONFIG.ended)!;
+                const stateLabel = t(`airdropPhases.state.${ph.timeline_state}`, {
+                  defaultValue: ph.timeline_state,
+                });
                 const distributedPct = ph.total_points_cap > 0
                   ? Math.min(100, (ph.distributed_points / ph.total_points_cap) * 100)
                   : 0;
@@ -382,7 +392,7 @@ export default function StudioProjectAirdropPhases() {
                           <span className="font-mono text-xs text-text-secondary">#{ph.phase_id}</span>
                           <span className={cn('flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold', stateCfg.cls)}>
                             {stateCfg.icon}
-                            {stateCfg.label}
+                            {stateLabel}
                           </span>
                         </div>
                         <p className="mt-1 text-xs text-text-secondary">
@@ -424,15 +434,15 @@ export default function StudioProjectAirdropPhases() {
                     {/* Stats row */}
                     <div className="mb-2 grid grid-cols-3 gap-2 text-xs">
                       <div className="rounded-lg bg-white/5 px-2 py-1.5">
-                        <p className="text-[10px] text-text-secondary">签到</p>
+                        <p className="text-[10px] text-text-secondary">{t('airdropPhases.listSign')}</p>
                         <p className="font-semibold tabular-nums">+{ph.daily_sign_amount}</p>
                       </div>
                       <div className="rounded-lg bg-white/5 px-2 py-1.5">
-                        <p className="text-[10px] text-text-secondary">邀请 (×{ph.invite_daily_cap})</p>
+                        <p className="text-[10px] text-text-secondary">{t('airdropPhases.listInvite', { n: ph.invite_daily_cap })}</p>
                         <p className="font-semibold tabular-nums">+{ph.invite_per_day_amount}</p>
                       </div>
                       <div className="rounded-lg bg-white/5 px-2 py-1.5">
-                        <p className="text-[10px] text-text-secondary">组队</p>
+                        <p className="text-[10px] text-text-secondary">{t('airdropPhases.listTeam')}</p>
                         <p className="font-semibold tabular-nums">+{ph.team_per_day_amount}</p>
                       </div>
                     </div>

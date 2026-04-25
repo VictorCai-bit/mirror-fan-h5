@@ -15,42 +15,38 @@ import {
   Star,
 } from 'lucide-react';
 import { useState } from 'react';
+import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 const CATEGORY_META: Record<
   string,
-  { icon: React.ReactNode; color: string; bg: string; label: string }
+  { icon: React.ReactNode; color: string; bg: string }
 > = {
   milestone: {
     icon: <Flag className="size-4" />,
     color: 'text-success-400',
     bg: 'bg-success-500/15',
-    label: '里程碑',
   },
   project: {
     icon: <Star className="size-4" />,
     color: 'text-primary-400',
     bg: 'bg-primary-500/15',
-    label: '项目',
   },
   wallet: {
     icon: <Wallet className="size-4" />,
     color: 'text-info-400',
     bg: 'bg-info-500/15',
-    label: '钱包',
   },
   airdrop: {
     icon: <Coins className="size-4" />,
     color: 'text-warning-400',
     bg: 'bg-warning-500/15',
-    label: '空投',
   },
   system: {
     icon: <Megaphone className="size-4" />,
     color: 'text-accent-400',
     bg: 'bg-accent-500/15',
-    label: '系统',
   },
 };
 
@@ -60,17 +56,24 @@ function getCategoryMeta(category: string) {
       icon: <Bell className="size-4" />,
       color: 'text-text-secondary',
       bg: 'bg-white/10',
-      label: category,
     }
   );
 }
 
-function timeAgo(unix: number, locale: string): string {
+function categoryLabel(category: string, t: TFunction) {
+  const k = `notifications.cat.${category}` as const;
+  if (['milestone', 'project', 'wallet', 'airdrop', 'system'].includes(category)) {
+    return t(k);
+  }
+  return category;
+}
+
+function timeAgo(unix: number, locale: string, t: TFunction): string {
   const diff = Math.floor(Date.now() / 1000) - unix;
-  if (diff < 60) return '刚刚';
-  if (diff < 3600) return `${Math.floor(diff / 60)}分钟前`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}小时前`;
-  if (diff < 86400 * 7) return `${Math.floor(diff / 86400)}天前`;
+  if (diff < 60) return t('notifications.time.justNow');
+  if (diff < 3600) return t('notifications.time.minutesAgo', { n: Math.floor(diff / 60) });
+  if (diff < 86400) return t('notifications.time.hoursAgo', { n: Math.floor(diff / 3600) });
+  if (diff < 86400 * 7) return t('notifications.time.daysAgo', { n: Math.floor(diff / 86400) });
   return new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric' }).format(
     new Date(unix * 1000),
   );
@@ -80,13 +83,16 @@ function NotifItem({
   n,
   onRead,
   locale,
+  t,
 }: {
   n: Notification;
   onRead: (id: string) => void;
   locale: string;
+  t: TFunction;
 }) {
   const nav = useNavigate();
   const meta = getCategoryMeta(n.category);
+  const label = categoryLabel(n.category, t);
 
   function handleClick() {
     if (!n.read) onRead(n.id);
@@ -129,9 +135,9 @@ function NotifItem({
               meta.color,
             )}
           >
-            {meta.label}
+            {label}
           </span>
-          <span className="text-[10px] text-text-secondary">{timeAgo(n.created_at, locale)}</span>
+          <span className="text-[10px] text-text-secondary">{timeAgo(n.created_at, locale, t)}</span>
         </div>
         <p
           className={cn(
@@ -214,7 +220,7 @@ export default function NotificationsPage() {
               className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-white/5 hover:text-text-primary"
             >
               <CheckCheck className="size-3.5" />
-              全部已读
+              {t('notifications.markAllRead')}
             </button>
           )}
         </div>
@@ -233,7 +239,9 @@ export default function NotificationsPage() {
                   : 'text-text-secondary hover:text-text-primary',
               )}
             >
-              {f === 'all' ? `全部${all.length > 0 ? ` (${all.length})` : ''}` : `未读${unreadCount > 0 ? ` (${unreadCount})` : ''}`}
+              {f === 'all'
+                ? t('notifications.tabAll', { suffix: all.length > 0 ? ` (${all.length})` : '' })
+                : t('notifications.tabUnread', { suffix: unreadCount > 0 ? ` (${unreadCount})` : '' })}
             </button>
           ))}
         </div>
@@ -247,7 +255,9 @@ export default function NotificationsPage() {
           ) : displayed.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-text-secondary">
               <Bell className="mb-3 size-10 opacity-20" />
-              <p className="text-sm">{filter === 'unread' ? '没有未读通知' : '暂无通知'}</p>
+              <p className="text-sm">
+                {filter === 'unread' ? t('notifications.emptyUnread') : t('notifications.emptyAll')}
+              </p>
             </div>
           ) : (
             displayed.map((n) => (
@@ -255,6 +265,7 @@ export default function NotificationsPage() {
                 key={n.id}
                 n={n}
                 locale={locale}
+                t={t}
                 onRead={(id) => mark.mutate([id])}
               />
             ))

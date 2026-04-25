@@ -65,14 +65,14 @@ export default function StudioWallet() {
               icon={<Lock className="size-4 text-warn-400" />}
               label={t('studio.walletLockedA')}
               value={isPending ? null : formatUsdtFromRaw(data?.locked_a_raw ?? '0', locale)}
-              sub="交易量解锁"
+              sub={t('creator.studioWallet.subVolume')}
               color="warn"
             />
             <StatCard
               icon={<Unlock className="size-4 text-info-400" />}
               label={t('studio.walletLockedB')}
               value={isPending ? null : formatUsdtFromRaw(data?.locked_b_raw ?? '0', locale)}
-              sub="里程碑解锁"
+              sub={t('creator.studioWallet.subMilestone')}
               color="info"
             />
           </div>

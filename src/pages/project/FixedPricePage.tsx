@@ -17,13 +17,13 @@ import { toast } from 'sonner';
 
 type SheetStep = 'amount' | 'preview' | 'confirm';
 
-const STATUS_CONFIG: Record<string, { label: string; cls: string } | undefined> = {
-  upcoming:    { label: '即将开始', cls: 'bg-info-500/15 text-info-400' },
-  subscribing: { label: '认购中', cls: 'bg-success-500/15 text-success-400' },
-  ended:       { label: '已结束', cls: 'bg-text-secondary/15 text-text-secondary' },
-  vesting:     { label: 'Vesting 中', cls: 'bg-purple-500/15 text-purple-400' },
-  done:        { label: '已完成', cls: 'bg-text-secondary/15 text-text-secondary' },
-  cancelled:   { label: '已取消', cls: 'bg-danger-500/15 text-danger-400' },
+const SALE_STATUS_CLS: Record<string, string> = {
+  upcoming: 'bg-info-500/15 text-info-400',
+  subscribing: 'bg-success-500/15 text-success-400',
+  ended: 'bg-text-secondary/15 text-text-secondary',
+  vesting: 'bg-purple-500/15 text-purple-400',
+  done: 'bg-text-secondary/15 text-text-secondary',
+  cancelled: 'bg-danger-500/15 text-danger-400',
 };
 
 function fmtDate(unix: number, locale: string): string {
@@ -45,7 +45,9 @@ function VestingSummary({ sale }: { sale: AdminFixedPriceSaleRow; locale?: strin
 }
 
 function SaleCard({ sale, onSubscribe, locale }: { sale: AdminFixedPriceSaleRow; onSubscribe: (s: AdminFixedPriceSaleRow) => void; locale: string }) {
-  const cfg = STATUS_CONFIG[sale.status] ?? { label: '已结束', cls: 'bg-text-secondary/15 text-text-secondary' };
+  const { t } = useTranslation();
+  const cls = SALE_STATUS_CLS[sale.status] ?? 'bg-text-secondary/15 text-text-secondary';
+  const statusLabel = t(`fixedPricePage.saleStatus.${sale.status}`, { defaultValue: sale.status });
   const raised = BigInt(sale.raised_usdt_raw);
   const target = BigInt(sale.target_usdt_raw);
   const pct = target > 0n ? Number((raised * 10000n) / target) / 100 : 0;
@@ -56,18 +58,21 @@ function SaleCard({ sale, onSubscribe, locale }: { sale: AdminFixedPriceSaleRow;
     <div className={cn('rounded-2xl bg-surface p-3 ring-1 transition-all', isActive ? 'ring-success-500/30' : 'ring-white/6')}>
       <div className="mb-2 flex items-start justify-between gap-2">
         <div>
-          <p className="text-xs text-text-secondary">{sale.symbol} 固定价格认购</p>
-          <p className="mt-0.5 text-lg font-bold tabular-nums">${priceUsdt.toFixed(4)}<span className="ml-1 text-xs text-text-secondary">/ 代币</span></p>
+          <p className="text-xs text-text-secondary">{t('fixedPricePage.cardSubtitle', { symbol: sale.symbol })}</p>
+          <p className="mt-0.5 text-lg font-bold tabular-nums">
+            ${priceUsdt.toFixed(4)}
+            <span className="ml-1 text-xs text-text-secondary">{t('fixedPricePage.perToken')}</span>
+          </p>
         </div>
-        <span className={cn('rounded-full px-2.5 py-1 text-[10px] font-semibold shrink-0', cfg.cls)}>
-          {cfg.label}
+        <span className={cn('rounded-full px-2.5 py-1 text-[10px] font-semibold shrink-0', cls)}>
+          {statusLabel}
         </span>
       </div>
 
       {/* Progress bar */}
       <div className="mb-2">
         <div className="mb-1 flex items-center justify-between text-[10px] text-text-secondary">
-          <span>已募集 {pct.toFixed(1)}%</span>
+          <span>{t('fixedPricePage.raisedPct', { pct: pct.toFixed(1) })}</span>
           <span className="tabular-nums">
             {formatUsdtFromRaw(sale.raised_usdt_raw, locale)} / {formatUsdtFromRaw(sale.target_usdt_raw, locale)} USDT
           </span>
@@ -86,18 +91,18 @@ function SaleCard({ sale, onSubscribe, locale }: { sale: AdminFixedPriceSaleRow;
 
       {/* Vesting plan */}
       <div className="mb-2">
-        <p className="mb-1 text-[10px] text-text-secondary">Vesting 计划</p>
+        <p className="mb-1 text-[10px] text-text-secondary">{t('fixedPricePage.vestingPlan')}</p>
         <VestingSummary sale={sale} locale={locale} />
       </div>
 
       {isActive ? (
         <Button className="mt-1 w-full" onClick={() => onSubscribe(sale)}>
-          立即认购
+          {t('fixedPricePage.subscribeNow')}
         </Button>
       ) : (
         <div className="mt-1 flex h-9 items-center justify-center gap-1.5 rounded-xl bg-white/5 text-xs text-text-secondary">
           <Lock className="size-3" />
-          {sale.status === 'upcoming' ? '认购尚未开始' : '认购已结束'}
+          {sale.status === 'upcoming' ? t('fixedPricePage.notStarted') : t('fixedPricePage.saleEnded')}
         </div>
       )}
     </div>
@@ -105,6 +110,7 @@ function SaleCard({ sale, onSubscribe, locale }: { sale: AdminFixedPriceSaleRow;
 }
 
 function OrdersSection({ saleId, locale }: { saleId: string; locale: string }) {
+  const { t } = useTranslation();
   const { data } = useQuery({
     queryKey: ['fixed-price', 'orders', saleId],
     queryFn: () => apiFetch<FixedPriceOrderRow[]>(`/rwa/fixed-price/sales/${saleId}/orders`),
@@ -114,7 +120,7 @@ function OrdersSection({ saleId, locale }: { saleId: string; locale: string }) {
 
   return (
     <div className="mt-3">
-      <p className="mb-2 text-xs font-semibold text-text-secondary">我的订单</p>
+      <p className="mb-2 text-xs font-semibold text-text-secondary">{t('fixedPricePage.myOrders')}</p>
       <div className="space-y-2">
         {rows.map((o) => (
           <div key={o.order_id} className="flex items-center justify-between rounded-xl bg-surface px-3 py-2 text-xs ring-1 ring-white/6">
@@ -123,7 +129,9 @@ function OrdersSection({ saleId, locale }: { saleId: string; locale: string }) {
               <p className="text-text-secondary">{new Date(o.created_at * 1000).toLocaleDateString(locale)}</p>
             </div>
             <div className="text-right">
-              <p className="font-medium tabular-nums text-success-400">+{formatTokenFromRaw(o.token_raw, locale, 2)} 代币</p>
+              <p className="font-medium tabular-nums text-success-400">
+                {t('fixedPricePage.tokenLine', { amount: formatTokenFromRaw(o.token_raw, locale, 2) })}
+              </p>
               <p className="text-[10px] text-text-secondary">{o.order_id.slice(0, 8)}…</p>
             </div>
           </div>
@@ -136,7 +144,7 @@ function OrdersSection({ saleId, locale }: { saleId: string; locale: string }) {
 export default function FixedPricePage() {
   const { id } = useParams();
   const nav = useNavigate();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const locale = i18n.language;
   const qc = useQueryClient();
   const usdtRaw = useUserStore((s) => s.usdt_raw);
@@ -187,7 +195,7 @@ export default function FixedPricePage() {
         }),
       }),
     onSuccess: async () => {
-      toast.success('认购成功');
+      toast.success(t('fixedPricePage.successToast'));
       await qc.invalidateQueries({ queryKey: ['rwa', 'my', 'vesting'] });
       closeSheet();
       nav(`/project/${id}/vesting`);
@@ -224,14 +232,14 @@ export default function FixedPricePage() {
           <button type="button" className="rounded-lg p-2 text-text-secondary hover:bg-white/5" onClick={() => nav(-1)}>
             <ChevronLeft className="size-5" />
           </button>
-          <h1 className="flex-1 text-base font-semibold">固定价格认购 · {symbol}</h1>
+          <h1 className="flex-1 text-base font-semibold">{t('fixedPricePage.pageTitle', { symbol })}</h1>
         </div>
 
         <div className="flex flex-col gap-3 px-3 pb-8">
           {isPending ? (
             [0, 1, 2].map((i) => <Skeleton key={i} className="h-44 rounded-2xl" />)
           ) : sales.length === 0 ? (
-            <p className="py-10 text-center text-sm text-text-secondary">暂无认购轮次</p>
+            <p className="py-10 text-center text-sm text-text-secondary">{t('fixedPricePage.empty')}</p>
           ) : (
             <>
               {/* Group: active first */}
@@ -250,7 +258,7 @@ export default function FixedPricePage() {
       </div>
 
       {/* Subscribe sheet */}
-      <BottomSheet open={!!activeSale} onClose={closeSheet} title={`认购 ${symbol}`}>
+      <BottomSheet open={!!activeSale} onClose={closeSheet} title={t('fixedPricePage.sheetTitle', { symbol })}>
         {activeSale && (
           <div className="space-y-3 pb-4">
             {step === 'amount' && (
@@ -258,20 +266,22 @@ export default function FixedPricePage() {
                 {/* Price info */}
                 <div className="rounded-xl bg-surface px-3 py-2 text-xs flex items-center gap-2">
                   <TrendingUp className="size-3.5 text-success-400" />
-                  <span className="text-text-secondary">认购单价：</span>
-                  <span className="font-bold text-success-400">${pricePerToken.toFixed(4)} / {symbol}</span>
+                  <span className="text-text-secondary">{t('fixedPricePage.priceLabel')}</span>
+                  <span className="font-bold text-success-400">
+                    {t('fixedPricePage.perSymbol', { price: pricePerToken.toFixed(4), symbol })}
+                  </span>
                 </div>
 
                 {/* Balance */}
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-text-secondary">可用 USDT</span>
+                  <span className="text-text-secondary">{t('fixedPricePage.availableUsdt')}</span>
                   <span className="tabular-nums font-medium">{availableUsdt.toLocaleString(locale, { minimumFractionDigits: 2 })} USDT</span>
                 </div>
 
                 {/* Amount input */}
                 <div className="rounded-2xl bg-surface p-3">
                   <div className="mb-1.5 flex items-center justify-between text-xs text-text-secondary">
-                    <span>认购金额 (USDT)</span>
+                    <span>{t('fixedPricePage.amountLabel')}</span>
                     <button type="button" className="text-accent-500 font-medium" onClick={() => setAmountStr(Math.floor(availableUsdt).toString())}>
                       MAX
                     </button>
@@ -288,7 +298,7 @@ export default function FixedPricePage() {
                 {/* Estimated tokens */}
                 {amountNum > 0 ? (
                   <div className="flex items-center justify-between rounded-xl bg-surface px-3 py-2 text-xs">
-                    <span className="text-text-secondary">预计获得</span>
+                    <span className="text-text-secondary">{t('fixedPricePage.estimatedReceive')}</span>
                     <span className="font-bold tabular-nums text-success-400">
                       {estimatedTokens.toLocaleString(locale, { maximumFractionDigits: 2 })} {symbol}
                     </span>
@@ -297,23 +307,25 @@ export default function FixedPricePage() {
 
                 {/* Vesting plan */}
                 <div className="rounded-xl bg-surface px-3 py-2">
-                  <p className="mb-1.5 text-[10px] text-text-secondary">Vesting 计划</p>
+                  <p className="mb-1.5 text-[10px] text-text-secondary">{t('fixedPricePage.vestingPlan')}</p>
                   <VestingSummary sale={activeSale} locale={locale} />
                 </div>
 
                 {amountNum > availableUsdt && availableUsdt > 0 ? (
-                  <p className="text-center text-xs text-danger-500">超出可用余额</p>
+                  <p className="text-center text-xs text-danger-500">{t('fixedPricePage.exceedBalance')}</p>
                 ) : null}
 
                 <div className="flex gap-2">
-                  <Button variant="secondary" className="flex-1" onClick={closeSheet}>取消</Button>
+                  <Button variant="secondary" className="flex-1" onClick={closeSheet}>
+                    {t('common.cancel')}
+                  </Button>
                   <Button
                     className="flex-1"
                     disabled={!canNext}
                     loading={previewM.isPending}
                     onClick={() => previewM.mutate()}
                   >
-                    预览 <ChevronRight className="ml-1 size-3.5" />
+                    {t('fixedPricePage.preview')} <ChevronRight className="ml-1 size-3.5" />
                   </Button>
                 </div>
               </>
@@ -322,37 +334,39 @@ export default function FixedPricePage() {
             {step === 'preview' && previewData && (
               <>
                 <div className="rounded-2xl bg-surface p-4 space-y-3">
-                  <p className="font-semibold">确认认购</p>
+                  <p className="font-semibold">{t('fixedPricePage.confirmBlockTitle')}</p>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-text-secondary">支付</span>
+                      <span className="text-text-secondary">{t('fixedPricePage.pay')}</span>
                       <span className="tabular-nums font-medium">{amountNum.toLocaleString(locale, { minimumFractionDigits: 2 })} USDT</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-text-secondary">获得（进入 Vesting）</span>
+                      <span className="text-text-secondary">{t('fixedPricePage.receiveVesting')}</span>
                       <span className="tabular-nums font-bold text-success-400">
                         {formatTokenFromRaw(previewData.token_raw, locale, 2)} {symbol}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-text-secondary">认购单价</span>
+                      <span className="text-text-secondary">{t('fixedPricePage.unitPrice')}</span>
                       <span className="tabular-nums">${pricePerToken.toFixed(4)}</span>
                     </div>
                   </div>
                   <div>
-                    <p className="mb-1 text-[10px] text-text-secondary">Vesting 计划</p>
+                    <p className="mb-1 text-[10px] text-text-secondary">{t('fixedPricePage.vestingPlan')}</p>
                     <VestingSummary sale={activeSale} locale={locale} />
                   </div>
                 </div>
 
                 <div className="flex gap-2">
-                  <Button variant="secondary" className="flex-1" onClick={() => setStep('amount')}>返回修改</Button>
+                  <Button variant="secondary" className="flex-1" onClick={() => setStep('amount')}>
+                    {t('fixedPricePage.backEdit')}
+                  </Button>
                   <Button
                     className="flex-1"
                     loading={confirmM.isPending}
                     onClick={() => confirmM.mutate()}
                   >
-                    确认认购
+                    {t('fixedPricePage.confirm')}
                   </Button>
                 </div>
               </>

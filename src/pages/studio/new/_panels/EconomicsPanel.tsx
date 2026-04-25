@@ -61,7 +61,7 @@ export function EconomicsPanel({ value, onChange, disabled }: EconomicsPanelProp
 
   return (
     <div className="flex flex-col gap-3">
-      <Field label="融资目标 (USDT)" hint="例：80000">
+      <Field label={t('creator.econ.targetLabel')} hint={t('creator.econ.targetHint')}>
         <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-secondary">$</span>
           <Input
@@ -75,7 +75,7 @@ export function EconomicsPanel({ value, onChange, disabled }: EconomicsPanelProp
           />
         </div>
       </Field>
-      <Field label="IP 估值 (USDT)" hint="例：400000000">
+      <Field label={t('creator.econ.ipValuationLabel')} hint={t('creator.econ.ipValuationHint')}>
         <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-secondary">$</span>
           <Input

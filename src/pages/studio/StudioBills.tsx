@@ -85,7 +85,7 @@ export default function StudioBills() {
           </button>
           <h1 className="flex-1 text-base font-semibold">{t('studio.bills')}</h1>
           <span className="text-xs text-text-secondary">
-            {data ? `${data.length} 条` : ''}
+            {data ? t('wallet.billCount', { n: data.length }) : ''}
           </span>
         </div>
 

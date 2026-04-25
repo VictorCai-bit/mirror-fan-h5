@@ -46,7 +46,7 @@ export default function HoldersPage() {
           <h1 className="flex-1 text-base font-semibold">{t('project.holdersTitle')}</h1>
           {detail ? (
             <span className="text-xs text-text-secondary">
-              {(detail.holder_count ?? rows.length).toLocaleString(locale)} 持有者
+              {t('holders.count', { n: (detail.holder_count ?? rows.length).toLocaleString(locale) })}
             </span>
           ) : null}
         </div>
@@ -55,8 +55,8 @@ export default function HoldersPage() {
           {/* Header row */}
           <div className="grid grid-cols-[2rem_1fr_auto_auto] items-center gap-2 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-text-secondary">
             <span>#</span>
-            <span>钱包</span>
-            <span className="text-right">持有</span>
+            <span>{t('holders.colWallet')}</span>
+            <span className="text-right">{t('holders.colHold')}</span>
             <span className="w-5" />
           </div>
 
@@ -99,12 +99,12 @@ export default function HoldersPage() {
                         <span className="font-mono text-xs">{shortenAddress(h.wallet)}</span>
                         {isMe ? (
                           <span className="rounded-full bg-primary-500/20 px-1.5 py-0.5 text-[9px] font-bold text-primary-400">
-                            Me
+                            {t('common.me')}
                           </span>
                         ) : null}
                       </div>
                       <p className="text-[10px] text-text-secondary tabular-nums">
-                        {(h.pct_bps / 100).toFixed(2)}% 占比
+                        {t('holders.sharePct', { pct: (h.pct_bps / 100).toFixed(2) })}
                       </p>
                     </div>
 
@@ -122,24 +122,24 @@ export default function HoldersPage() {
                     <div className="border-t border-white/6 px-3 pb-3 pt-2">
                       <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
                         <div>
-                          <p className="text-text-secondary">代币余额</p>
+                          <p className="text-text-secondary">{t('holders.tokenBalance')}</p>
                           <p className="font-medium tabular-nums">{formatTokenFromRaw(h.balance_raw, locale, 4)} {symbol}</p>
                         </div>
                         <div>
-                          <p className="text-text-secondary">未实现盈亏</p>
+                          <p className="text-text-secondary">{t('holders.unrealizedPnl')}</p>
                           <p className={cn('font-semibold tabular-nums', pnlPositive ? 'text-success-400' : 'text-danger-400')}>
                             {pnlPositive ? '+' : ''}{pnl.toFixed(2)} USDT
                           </p>
                         </div>
                         <div>
-                          <p className="text-text-secondary">买入次数</p>
+                          <p className="text-text-secondary">{t('holders.buyCount')}</p>
                           <div className="flex items-center gap-1">
                             <TrendingUp className="size-3 text-success-400" />
                             <span className="font-medium">{h.buy_count ?? '—'}</span>
                           </div>
                         </div>
                         <div>
-                          <p className="text-text-secondary">卖出次数</p>
+                          <p className="text-text-secondary">{t('holders.sellCount')}</p>
                           <div className="flex items-center gap-1">
                             <TrendingDown className="size-3 text-danger-400" />
                             <span className="font-medium">{h.sell_count ?? '—'}</span>
@@ -147,7 +147,7 @@ export default function HoldersPage() {
                         </div>
                         {h.last_trade_time ? (
                           <div className="col-span-2">
-                            <p className="text-text-secondary">最近交易</p>
+                            <p className="text-text-secondary">{t('holders.lastTrade')}</p>
                             <p className="font-medium">
                               {new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(h.last_trade_time * 1000))}
                             </p>

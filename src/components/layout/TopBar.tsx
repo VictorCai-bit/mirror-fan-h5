@@ -100,7 +100,7 @@ export function TopBar({ className }: { className?: string }) {
           type="button"
           className="rounded-md px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-orange-400/70 ring-1 ring-orange-400/30 hover:bg-orange-400/10"
           onClick={() => setDebug(true)}
-          title="开发调试面板（仅原型使用）"
+          title={t('appDebug.title')}
         >
           DEV
         </button>

@@ -196,7 +196,7 @@ export default function DetailPage() {
         >
           {canTrade && <span className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />}
           <span className="relative text-[15px] font-bold tracking-wide">{t('project.buy')}</span>
-          {canTrade && <span className="relative mt-0.5 text-[10px] font-normal opacity-70">做多</span>}
+          {canTrade && <span className="relative mt-0.5 text-[10px] font-normal opacity-70">{t('project.tradeLong')}</span>}
         </button>
         <button
           type="button"
@@ -209,7 +209,7 @@ export default function DetailPage() {
         >
           {canTrade && <span className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />}
           <span className="relative text-[15px] font-bold tracking-wide">{t('project.sell')}</span>
-          {canTrade && <span className="relative mt-0.5 text-[10px] font-normal opacity-70">做空</span>}
+          {canTrade && <span className="relative mt-0.5 text-[10px] font-normal opacity-70">{t('project.tradeShort')}</span>}
         </button>
       </div>
     </div>
@@ -296,7 +296,7 @@ export default function DetailPage() {
               {/* Top-right: airdrop countdown */}
               {p.airdrop_phase?.end_at ? (
                 <div className="absolute right-4 top-4 text-right">
-                  <p className="text-[9px] text-white/60">空投倒计时</p>
+                  <p className="text-[9px] text-white/60">{t('home.countdown')}</p>
                   <CountdownBadge endAt={p.airdrop_phase.end_at} />
                 </div>
               ) : null}
@@ -332,9 +332,9 @@ export default function DetailPage() {
 
             {/* ── Stat strip ── */}
             <div className="grid grid-cols-3 gap-0 border-b border-white/8">
-              <StatCell label="24h 买入" value={formatUsdtFromRaw(p.volume_24h_raw ?? '0', locale)} />
+              <StatCell label={t('project.volume24h')} value={formatUsdtFromRaw(p.volume_24h_raw ?? '0', locale)} />
               <StatCell
-                label="市值"
+                label={t('project.mcap')}
                 value={
                   mktCap > 0
                     ? new Intl.NumberFormat(locale, {
@@ -347,7 +347,7 @@ export default function DetailPage() {
                 }
                 center
               />
-              <StatCell label="持有者" value={(p.holder_count ?? 0).toLocaleString(locale)} right />
+              <StatCell label={t('project.holderCount')} value={(p.holder_count ?? 0).toLocaleString(locale)} right />
             </div>
 
             {/* ── Progress bar ── */}
@@ -378,7 +378,7 @@ export default function DetailPage() {
             {userPosition && Number(userPosition) > 0 ? (
               <div className="mx-3 mb-3 flex items-center justify-between rounded-2xl bg-success-500/10 px-4 py-3 ring-1 ring-success-500/20">
                 <div>
-                  <p className="text-[10px] text-success-400">我的持仓</p>
+                  <p className="text-[10px] text-success-400">{t('project.mine')}</p>
                   <p className="text-sm font-bold tabular-nums text-success-400">
                     {formatTokenFromRaw(userPosition, locale, 2)} {p.symbol}
                   </p>
@@ -388,7 +388,7 @@ export default function DetailPage() {
                   className="rounded-full bg-success-500/15 px-3 py-1.5 text-[11px] font-semibold text-success-400"
                   onClick={() => nav(`/project/${id}/mine`)}
                 >
-                  持仓详情 →
+                  {t('project.positionCta')}
                 </button>
               </div>
             ) : null}
@@ -402,24 +402,24 @@ export default function DetailPage() {
               </div>
               <div className="grid grid-cols-2 gap-0 px-4 py-3">
                 <RwaField
-                  label="收益权比例"
+                  label={t('project.revenueRights')}
                   value={formatPercentFromBps(
                     p.revenue_rights_percent_bps ?? p.fundraising_fraction_bps ?? 0,
                     locale,
                   )}
                 />
                 <RwaField
-                  label="公允估值"
+                  label={t('project.fairValue')}
                   value={formatUsdtFromRaw(p.ip_revenue_rights_valuation_micro_usdt, locale)}
                   right
                 />
                 <RwaField
-                  label="融资目标"
+                  label={t('project.raiseTarget')}
                   value={formatUsdtFromRaw(p.target_financing_micro_usdt, locale)}
                   border
                 />
                 <RwaField
-                  label="已募集"
+                  label={t('project.raised')}
                   value={
                     p.total_sold_raw && Number(p.total_sold_raw) > 0
                       ? `${formatTokenFromRaw(p.total_sold_raw, locale, 0)} ${p.symbol}`
@@ -429,10 +429,10 @@ export default function DetailPage() {
                   border
                 />
                 <RwaField
-                  label="保证金"
+                  label={t('project.margin')}
                   value={
-                    p.deposit_status === 'paid' ? '✓ 已缴'
-                    : p.deposit_status === 'unpaid' ? '✗ 未缴'
+                    p.deposit_status === 'paid' ? t('project.marginPaid')
+                    : p.deposit_status === 'unpaid' ? t('project.marginUnpaid')
                     : (p.deposit_status ?? '—')
                   }
                   valueClass={
@@ -443,7 +443,7 @@ export default function DetailPage() {
                   border
                 />
                 <RwaField
-                  label="作品类型"
+                  label={t('project.workType')}
                   value={p.work_type ?? '—'}
                   right
                   border
@@ -544,21 +544,21 @@ export default function DetailPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-px bg-white/5 p-0">
                   {[
-                    { label: '管理空投阶段', icon: '🎁', path: `/studio/project/${id}/airdrop-phases` },
-                    { label: '提交里程碑',   icon: '🏁', path: `/studio/project/${id}/milestone` },
-                    { label: '收益进度',     icon: '📈', path: `/studio/project/${id}/progress` },
-                    { label: '财务披露',     icon: '📄', path: `/studio/project/${id}/reconcile` },
-                    { label: '增发申请',     icon: '🏷️', path: `/studio/project/${id}/fixed-price` },
-                    { label: '资金池',       icon: '🏦', path: `/studio/project/${id}/vault` },
+                    { labelKey: 'project.studioAirdrop' as const, icon: '🎁', path: `/studio/project/${id}/airdrop-phases` },
+                    { labelKey: 'project.studioMilestone' as const, icon: '🏁', path: `/studio/project/${id}/milestone` },
+                    { labelKey: 'project.studioRevenue' as const, icon: '📈', path: `/studio/project/${id}/progress` },
+                    { labelKey: 'project.studioDisclosure' as const, icon: '📄', path: `/studio/project/${id}/reconcile` },
+                    { labelKey: 'project.studioFixedPrice' as const, icon: '🏷️', path: `/studio/project/${id}/fixed-price` },
+                    { labelKey: 'project.studioVault' as const, icon: '🏦', path: `/studio/project/${id}/vault` },
                   ].map((item) => (
                     <button
-                      key={item.label}
+                      key={item.labelKey}
                       type="button"
                       onClick={() => nav(item.path)}
                       className="flex items-center gap-2 bg-canvas px-4 py-3 text-left text-xs hover:bg-white/5"
                     >
                       <span className="text-base">{item.icon}</span>
-                      <span className="text-text-secondary hover:text-text-primary">{item.label}</span>
+                      <span className="text-text-secondary hover:text-text-primary">{t(item.labelKey)}</span>
                     </button>
                   ))}
                 </div>
@@ -710,11 +710,12 @@ function RecentTrades({
 }
 
 function PondView({ p }: { p: OnChainDetail }) {
+  const { t } = useTranslation();
   const vaultItems = [
-    { label: '早期空投补水', sublabel: 'Early Airdrop Replenishment', pct: 20, color: 'bg-info-500', glow: 'shadow-info-500/30' },
-    { label: '价格守卫基金', sublabel: 'Price Guard Fund',           pct: 10, color: 'bg-warning-400', glow: 'shadow-warning-400/30' },
-    { label: '生态 LP',       sublabel: 'Ecosystem LP',               pct: 10, color: 'bg-accent-500', glow: 'shadow-accent-500/30' },
-    { label: '创作者基金',    sublabel: 'Creator Fund',               pct: 60, color: 'bg-success-500', glow: 'shadow-success-500/30' },
+    { k: 'early' as const, pct: 20, color: 'bg-info-500', glow: 'shadow-info-500/30' },
+    { k: 'guard' as const, pct: 10, color: 'bg-warning-400', glow: 'shadow-warning-400/30' },
+    { k: 'lp' as const, pct: 10, color: 'bg-accent-500', glow: 'shadow-accent-500/30' },
+    { k: 'creator' as const, pct: 60, color: 'bg-success-500', glow: 'shadow-success-500/30' },
   ];
   return (
     <div className="overflow-hidden rounded-2xl bg-surface ring-1 ring-white/8">
@@ -725,11 +726,11 @@ function PondView({ p }: { p: OnChainDetail }) {
       ) : null}
       <div className="space-y-3 p-4">
         {vaultItems.map((item) => (
-          <div key={item.label}>
+          <div key={item.k}>
             <div className="mb-1 flex items-baseline justify-between">
               <div>
-                <span className="text-xs font-medium">{item.label}</span>
-                <span className="ml-1.5 text-[10px] text-text-secondary">{item.sublabel}</span>
+                <span className="text-xs font-medium">{t(`project.pond.${item.k}.main`)}</span>
+                <span className="ml-1.5 text-[10px] text-text-secondary">{t(`project.pond.${item.k}.sub`)}</span>
               </div>
               <span className="text-xs font-bold tabular-nums">{item.pct}%</span>
             </div>
