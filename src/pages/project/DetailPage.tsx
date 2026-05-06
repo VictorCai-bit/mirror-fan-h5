@@ -31,6 +31,7 @@ import {
   Tag,
   BarChart2,
   Layers,
+  CandlestickChart,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -454,20 +455,21 @@ export default function DetailPage() {
             {/* ── Secondary nav ── */}
             <div className="overflow-x-auto px-3 pb-2 [&::-webkit-scrollbar]:hidden">
               <div className="flex gap-2 whitespace-nowrap">
-                <SecNavChip icon={<Gift className="size-3" />}       label={t('project.airdrop')}     onClick={() => nav(`/project/${id}/airdrop`)} />
-                <SecNavChip icon={<ArrowLeftRight className="size-3" />} label={t('project.exchange')} onClick={() => nav(`/project/${id}/exchange`)} />
-                <SecNavChip icon={<Users className="size-3" />}       label={t('project.holdersTitle')} onClick={() => nav(`/project/${id}/holders`)} />
-                <SecNavChip icon={<BarChart2 className="size-3" />}   label={t('project.mine')}        onClick={() => nav(`/project/${id}/mine`)} />
-                <SecNavChip icon={<Flag className="size-3" />}        label={t('project.milestones')}  onClick={() => nav(`/project/${id}/milestones`)} />
-                <SecNavChip icon={<FileText className="size-3" />}    label={t('project.disclosure')}  onClick={() => nav(`/project/${id}/disclosure`)} />
-                <SecNavChip icon={<Tag className="size-3" />}         label={t('project.fixedPrice')}  onClick={() => nav(`/project/${id}/fixed-price`)} />
-                <SecNavChip icon={<Lock className="size-3" />}        label={t('project.vesting')}     onClick={() => nav(`/project/${id}/vesting`)} />
+                <SecNavChip icon={<Gift className="size-3" />}             label={t('project.airdrop')}      onClick={() => nav(`/project/${id}/airdrop`)} />
+                <SecNavChip icon={<ArrowLeftRight className="size-3" />}   label={t('project.exchange')}     onClick={() => nav(`/project/${id}/exchange`)} />
+                <SecNavChip icon={<Lock className="size-3" />}             label={t('project.vesting')}      onClick={() => nav(`/project/${id}/vesting`)} />
+                <SecNavChip icon={<Tag className="size-3" />}              label={t('project.fixedPrice')}   onClick={() => nav(`/project/${id}/fixed-price`)} />
+                <SecNavChip icon={<CandlestickChart className="size-3" />} label={t('project.kline')}        onClick={() => nav(`/project/${id}/kline`)} />
+                <SecNavChip icon={<Users className="size-3" />}            label={t('project.holdersTitle')} onClick={() => nav(`/project/${id}/holders`)} />
+                <SecNavChip icon={<BarChart2 className="size-3" />}        label={t('project.mine')}         onClick={() => nav(`/project/${id}/mine`)} />
+                <SecNavChip icon={<Flag className="size-3" />}             label={t('project.milestones')}   onClick={() => nav(`/project/${id}/milestones`)} />
+                <SecNavChip icon={<FileText className="size-3" />}         label={t('project.disclosure')}   onClick={() => nav(`/project/${id}/disclosure`)} />
                 {p.meteora_pool ? (
                   <SecNavChip
                     icon={<Zap className="size-3" />}
                     label={t('project.meteora')}
                     accent
-                    onClick={() => window.open(`https://app.meteora.ag/dlmm/${p.meteora_pool ?? ''}`, '_blank')}
+                    onClick={() => nav(`/project/${id}/meteora`)}
                   />
                 ) : null}
               </div>
