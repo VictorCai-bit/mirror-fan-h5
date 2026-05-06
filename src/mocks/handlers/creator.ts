@@ -531,7 +531,7 @@ export const creatorHandlers = [
       vesting_slice_period_sec: s.vesting_slice_period_sec,
       vesting_percentages_bps_csv: s.vesting_percentages_bps_csv,
       subscribed_usdt: undefined,
-      created_at: 0,
+      created_at: s.sale_start_unix > 0 ? s.sale_start_unix : Math.floor(Date.now() / 1000),
     }));
     // creator drafts
     const draftSales = (db.creatorFpSales ?? []).filter((s) => s.project_id === workId);

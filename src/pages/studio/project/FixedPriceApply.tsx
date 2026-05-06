@@ -972,11 +972,16 @@ function VestingPreview({
       <div className="flex flex-col gap-1">
         {Array.from({ length: slices }, (_, i) => {
           const unlockAt = startUnix + i * periodSec;
-          const dateStr = new Date(unlockAt * 1000).toLocaleDateString(locale, {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-          });
+          let dateStr = '—';
+          try {
+            if (unlockAt && !isNaN(unlockAt)) {
+              dateStr = new Date(unlockAt * 1000).toLocaleDateString(locale, {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              });
+            }
+          } catch { /* fallback to '—' */ }
           const bps = allVals[i] ?? 0;
           return (
             <div key={i} className="flex items-center justify-between text-[10px]">

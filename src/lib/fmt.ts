@@ -37,11 +37,16 @@ export function formatPercentFromBps(bps: number, locale: string): string {
   }).format(bps / 10_000);
 }
 
-export function formatDateTime(ts: number, locale: string): string {
-  return new Intl.DateTimeFormat(locale, {
-    dateStyle: 'short',
-    timeStyle: 'short',
-  }).format(ts * 1000);
+export function formatDateTime(ts: number | undefined | null, locale: string): string {
+  if (!ts || isNaN(ts)) return '—';
+  try {
+    return new Intl.DateTimeFormat(locale, {
+      dateStyle: 'short',
+      timeStyle: 'short',
+    }).format(ts * 1000);
+  } catch {
+    return '—';
+  }
 }
 
 export function formatRelativeShort(ts: number, locale: string): string {
