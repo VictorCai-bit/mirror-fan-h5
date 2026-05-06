@@ -3,9 +3,24 @@ import { Button } from '@/components/ui/Button';
 import { Stepper } from '@/components/ui/Stepper';
 import { AirdropPanel } from '@/pages/studio/new/_panels/AirdropPanel';
 import { useStudioStore } from '@/stores/useStudioStore';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+
+/** Default airdrop phase values — mirrors backend constants (userWorkTask.go) */
+function buildDefaultPhase() {
+  const now = Math.floor(Date.now() / 1000);
+  return {
+    start_at: now + 3600,          // ~1 hour after launch
+    end_at: now + 86400 * 90,      // 90-day window (ops can adjust)
+    daily_sign_amount: 5,
+    invite_per_day_amount: 5,
+    invite_daily_cap: 0,           // unlimited
+    team_per_day_amount: 3,
+    team_daily_cap: 0,             // unlimited
+    total_points_cap: 0,           // backend computes from 10% pool
+  };
+}
 
 export default function StudioNewStep3() {
   const nav = useNavigate();
@@ -15,7 +30,6 @@ export default function StudioNewStep3() {
   const upsertDraft = useStudioStore((s) => s.upsertDraft);
   const setStep = useStudioStore((s) => s.setStep);
   const draft = currentDraftId ? drafts[currentDraftId] : undefined;
-  const [err, setErr] = useState<string | undefined>();
 
   const steps = useMemo(
     () => [
@@ -40,16 +54,10 @@ export default function StudioNewStep3() {
   }
 
   const onNext = () => {
-    const ph = draft.initial_airdrop_phase;
-    if (!ph) {
-      setErr(t('errors.4010'));
-      return;
+    // Ensure initial_airdrop_phase is set with defaults (all values are protocol-fixed)
+    if (!draft.initial_airdrop_phase) {
+      upsertDraft({ ...draft, initial_airdrop_phase: buildDefaultPhase(), step: 3, updatedAt: Date.now() });
     }
-    if (ph.end_at <= ph.start_at + 24 * 3600) {
-      setErr(t('studio2.phases.minWindow'));
-      return;
-    }
-    setErr(undefined);
     setStep(4);
     nav('/studio/new/step4');
   };
@@ -63,13 +71,7 @@ export default function StudioNewStep3() {
         </div>
         <Stepper steps={steps} current={3} onChange={(n) => nav(`/studio/new/step${n}`)} />
 
-        <AirdropPanel
-          value={draft}
-          symbol={draft.symbol || 'IP'}
-          onChange={(patch) => upsertDraft({ ...draft, ...patch, step: 3, updatedAt: Date.now() })}
-        />
-
-        {err ? <p className="text-xs text-danger-500">{err}</p> : null}
+        <AirdropPanel value={draft} symbol={draft.symbol || 'IP'} />
 
         <Button onClick={onNext}>{t('studio.wizard.next')}</Button>
       </div>
