@@ -52,16 +52,22 @@ export function BottomSheet({
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 320 }}
             className={cn(
-              'relative z-[61] w-full max-w-[375px] rounded-t-3xl bg-elevated px-4 pb-[max(16px,env(safe-area-inset-bottom))] pt-2 shadow-2xl',
+              'relative z-[61] flex max-h-[90dvh] w-full max-w-[375px] flex-col rounded-t-3xl bg-elevated pt-2 shadow-2xl',
               className,
             )}
           >
+            {/* drag handle — always visible, not scrolled */}
             <div
-              className="mx-auto mb-3 h-1 w-10 cursor-grab rounded-full bg-white/20"
+              className="mx-auto mb-3 h-1 w-10 flex-none cursor-grab rounded-full bg-white/20"
               onPointerDown={(e) => dragControls.start(e)}
             />
-            {title ? <h3 className="mb-3 text-center text-base font-semibold">{title}</h3> : null}
-            {children}
+            {title ? (
+              <h3 className="mb-3 flex-none px-4 text-center text-base font-semibold">{title}</h3>
+            ) : null}
+            {/* scrollable body */}
+            <div className="overflow-y-auto px-4 pb-[max(16px,env(safe-area-inset-bottom))]">
+              {children}
+            </div>
           </motion.div>
         </div>
       ) : null}
