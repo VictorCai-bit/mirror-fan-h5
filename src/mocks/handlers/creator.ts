@@ -609,6 +609,58 @@ export const creatorHandlers = [
     return HttpResponse.json(jsonOk({ tx_signature: nanoid(), released_raw: '1000000000' }));
   }),
 
+  // Creator: single sale summary
+  http.get(`${BASE}/creator/fixed-price/sales/:saleId`, async ({ request, params }) => {
+    await mockDelay();
+    if (shouldInject500(request))
+      return HttpResponse.json({ code: 5000, msg: 'internal error', data: null });
+    const sale = getDb().fixedPriceSales.find((s) => s.id === params.saleId);
+    if (!sale) return HttpResponse.json({ code: 4040, msg: 'not found', data: null });
+    return HttpResponse.json(
+      jsonOk({
+        sale_id: sale.id,
+        symbol: sale.symbol,
+        status: sale.status,
+        price_usdt_per_token_raw: sale.price_usdt_per_token_raw,
+        target_usdt_raw: sale.target_usdt_raw,
+        raised_usdt_raw: sale.raised_usdt_raw,
+        sale_start_unix: sale.sale_start_unix,
+        sale_end_unix: sale.sale_end_unix,
+      }),
+    );
+  }),
+
+  // Creator: all subscriber orders for a sale (aggregated across all users)
+  http.get(`${BASE}/creator/fixed-price/sales/:saleId/orders`, async ({ request, params }) => {
+    await mockDelay();
+    if (shouldInject500(request))
+      return HttpResponse.json({ code: 5000, msg: 'internal error', data: null });
+    const saleId = String(params.saleId);
+    const db = getDb();
+    // Collect all orders across all UIDs for this sale
+    const orders = Object.entries(db.fixedPriceOrders)
+      .filter(([key]) => key.startsWith(`${saleId}_`))
+      .flatMap(([key, rows]) => {
+        const uid = key.slice(saleId.length + 1);
+        return (rows ?? []).map((o) => ({ ...o, investor_uid: uid }));
+      })
+      .sort((a, b) => b.created_at - a.created_at);
+
+    // If no real orders, return seed data for demo
+    if (orders.length === 0 && (saleId === 'sale-1' || saleId === 'sale-2' || saleId === 'sale-3' || saleId === 'sale-d1')) {
+      const now = Math.floor(Date.now() / 1000);
+      const seed = [
+        { order_id: 'ord-001', investor_uid: 'U-investor-001', usdt_raw: '5000000000', token_raw: '33333333333', created_at: now - 86400 * 2 },
+        { order_id: 'ord-002', investor_uid: 'U-investor-002', usdt_raw: '10000000000', token_raw: '66666666666', created_at: now - 86400 * 3 },
+        { order_id: 'ord-003', investor_uid: 'U-investor-003', usdt_raw: '3000000000', token_raw: '20000000000', created_at: now - 86400 * 4 },
+        { order_id: 'ord-004', investor_uid: 'U-investor-004', usdt_raw: '20000000000', token_raw: '133333333333', created_at: now - 86400 * 5 },
+        { order_id: 'ord-005', investor_uid: 'U-investor-005', usdt_raw: '8000000000', token_raw: '53333333333', created_at: now - 86400 * 6 },
+      ];
+      return HttpResponse.json(jsonOk(seed));
+    }
+    return HttpResponse.json(jsonOk(orders));
+  }),
+
   http.get(`${BASE}/creator/wallet/summary`, async ({ request }) => {
     await mockDelay();
     if (shouldInject500(request))

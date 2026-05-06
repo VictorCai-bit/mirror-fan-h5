@@ -42,6 +42,7 @@ import StudioProjectProgress from '@/pages/studio/project/Progress';
 import StudioProjectReconcile from '@/pages/studio/project/Reconcile';
 import StudioProjectReview from '@/pages/studio/project/Review';
 import StudioProjectFixedPriceApply from '@/pages/studio/project/FixedPriceApply';
+import StudioProjectFixedPriceOrders from '@/pages/studio/project/FixedPriceOrders';
 import StudioProjectVault from '@/pages/studio/project/Vault';
 import BillsPage from '@/pages/wallet/BillsPage';
 import RechargePage from '@/pages/wallet/RechargePage';
@@ -107,6 +108,7 @@ export function App() {
             <Route path="/studio/project/:id/progress" element={<StudioProjectProgress />} />
             <Route path="/studio/project/:id/reconcile" element={<StudioProjectReconcile />} />
             <Route path="/studio/project/:id/fixed-price" element={<StudioProjectFixedPriceApply />} />
+            <Route path="/studio/project/:id/fixed-price/:saleId/orders" element={<StudioProjectFixedPriceOrders />} />
             <Route path="/studio/project/:id/vault" element={<StudioProjectVault />} />
           </Route>
           <Route path="/arts/admin" element={<AdminHub />} />

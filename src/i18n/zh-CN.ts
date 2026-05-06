@@ -773,6 +773,17 @@ export default {
     afterTotal: '兑换后合计持有',
     viewVesting: '查看代币解锁明细',
   },
+  fpOrders: {
+    title: '认购者列表',
+    price: '认购单价',
+    target: '募集目标',
+    raised: '已筹集',
+    orderCount: '订单数',
+    progress: '募集进度',
+    subscriberList: '认购明细',
+    empty: '暂无认购订单',
+    tokens: '枚代币',
+  },
   fp2: {
     statusGroupUpcoming: '即将开始',
     statusGroupActive: '进行中',

@@ -431,7 +431,7 @@ function SaleCard({
             size="sm"
             variant="secondary"
             className="flex-1"
-            onClick={() => nav(`/project/${sale.project_id}/fixed-price`)}
+            onClick={() => nav(`/studio/project/${sale.project_id}/fixed-price/${sale.sale_id}/orders`)}
           >
             {t('studio2.fp.viewOrders')}
           </Button>

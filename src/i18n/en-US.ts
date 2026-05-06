@@ -779,6 +779,17 @@ export default {
     afterTotal: 'After exchange total',
     viewVesting: 'View token vesting schedule',
   },
+  fpOrders: {
+    title: 'Subscribers',
+    price: 'Unit price',
+    target: 'Target',
+    raised: 'Raised',
+    orderCount: 'Orders',
+    progress: 'Fundraising progress',
+    subscriberList: 'Order details',
+    empty: 'No orders yet',
+    tokens: 'tokens',
+  },
   fp2: {
     statusGroupUpcoming: 'Upcoming',
     statusGroupActive: 'Active',
