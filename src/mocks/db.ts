@@ -13,7 +13,7 @@ import type {
   UserVestingEntry,
   Work,
 } from '@/types/api';
-import { makeBills } from './factories/bills';
+import { makeBills, makeCreatorBills } from './factories/bills';
 import { makeNotifications } from './factories/notifications';
 import {
   createSeedProjects,
@@ -91,18 +91,9 @@ export function createInitialDb(): MockDb {
       'U-003': makeBills('U-003'),
     },
     creatorBillsByUid: {
-      'U-001': makeBills('U-001').filter((b) =>
-        [
-          'deposit',
-          'deposit_refund',
-          'fee_settle',
-          'milestone_claim',
-          'reconcile_distribute',
-          'vault_a_claim',
-          'vault_b_claim',
-          'fixed_price_creator_fee',
-        ].includes(b.type),
-      ),
+      'U-001': makeCreatorBills(),
+      'U-002': makeCreatorBills(),
+      'U-003': makeCreatorBills(),
     },
     notificationsByUid: {
       'U-001': makeNotifications(true),
