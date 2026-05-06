@@ -145,6 +145,16 @@ export default function StudioHome() {
             <Receipt className="size-4 text-accent-500" />
             {t('studio.bills')}
           </button>
+          {firstOnChain && (
+            <button
+              type="button"
+              onClick={() => nav(`/studio/project/${firstOnChain.id}/reconcile`)}
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-surface py-2.5 text-xs font-medium text-text-secondary hover:bg-white/10"
+            >
+              <FileText className="size-4 text-accent-500" />
+              {t('studioHome.reconcile')}
+            </button>
+          )}
         </div>
 
         <div className="mx-3 mb-3 flex gap-1.5 overflow-x-auto">
@@ -303,6 +313,18 @@ function ProjectStudioCard({
           <Cell label={t('studioHome.cardPrice')} value={p.current_price ? `$${Number(p.current_price).toFixed(4)}` : '—'} />
           <Cell label={t('studioHome.cardHolders')} value={String(p.holder_count ?? 0)} />
         </div>
+      ) : null}
+
+      {(p.status === 'curve_completed' || p.status === 'migrating' || p.status === 'migrated') ? (
+        <button
+          type="button"
+          onClick={() => nav(`/studio/project/${p.id}/reconcile`)}
+          className="mt-2 flex w-full items-center gap-2 rounded-xl bg-info-500/8 px-3 py-2 text-left hover:bg-info-500/15"
+        >
+          <FileText className="size-3.5 shrink-0 text-info-400" />
+          <span className="flex-1 text-[11px] text-info-400">{t('studioHome.reconcileEntry')}</span>
+          <ChevronRight className="size-3.5 text-info-400/60" />
+        </button>
       ) : null}
 
       {actions.length > 0 ? (

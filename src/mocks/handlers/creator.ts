@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw';
 import { getDb, mutateDb } from '@/mocks/db';
-import type { FixedPriceApplyBody, PhaseDraft, RwaProject } from '@/types/api';
+import type { CreatorFixedPriceSaleBody, FixedPriceApplyBody, PhaseDraft, RwaProject } from '@/types/api';
 import {
   getCreatorOf,
   getMockRole,
@@ -408,6 +408,135 @@ export const creatorHandlers = [
       ];
     });
     return HttpResponse.json(jsonOk({ reconcile_id: rid }));
+  }),
+
+  // Creator draft fixed-price sale — POST /arts/rwa/fixed-price/sales
+  http.post(`${BASE}/rwa/fixed-price/sales`, async ({ request }) => {
+    await mockDelay();
+    if (shouldInject500(request))
+      return HttpResponse.json({ code: 5000, msg: 'internal error', data: null });
+    const uid = getMockUid(request);
+    if (!uid) return HttpResponse.json({ code: 4001, msg: 'login', data: null });
+    const body = (await request.json()) as Partial<CreatorFixedPriceSaleBody>;
+    const required: (keyof CreatorFixedPriceSaleBody)[] = [
+      'project_id',
+      'price_usdt_per_token_raw',
+      'target_usdt_raw',
+      'sale_start_unix',
+      'sale_end_unix',
+      'vesting_start_unix',
+      'vesting_num_slices',
+      'vesting_slice_period_sec',
+      'vesting_percentages_bps_csv',
+    ];
+    for (const k of required) {
+      if (body[k] === undefined || body[k] === null || body[k] === '')
+        return HttpResponse.json({ code: 4010, msg: `missing ${k}`, data: null });
+    }
+    if (!assertCreator(request, Number(body.project_id)))
+      return HttpResponse.json({ code: 4003, msg: 'forbidden', data: null });
+    const saleId = nanoid();
+    mutateDb((d) => {
+      d.creatorFpSales = d.creatorFpSales ?? [];
+      d.creatorFpSales.push({
+        sale_id: saleId,
+        project_id: Number(body.project_id),
+        status: 'draft_config' as const,
+        price_usdt_per_token_raw: body.price_usdt_per_token_raw!,
+        target_usdt_raw: body.target_usdt_raw!,
+        public_bps: body.public_bps ?? 6000,
+        dev_bps: body.dev_bps ?? 3000,
+        airdrop_bps: body.airdrop_bps ?? 1000,
+        sale_start_unix: Number(body.sale_start_unix),
+        sale_end_unix: Number(body.sale_end_unix),
+        vesting_start_unix: Number(body.vesting_start_unix),
+        vesting_num_slices: Number(body.vesting_num_slices),
+        vesting_slice_period_sec: Number(body.vesting_slice_period_sec),
+        vesting_percentages_bps_csv: body.vesting_percentages_bps_csv!,
+        asset_proof_url: body.asset_proof_url ?? '',
+        created_at: Math.floor(Date.now() / 1000),
+      });
+    });
+    return HttpResponse.json(jsonOk({ sale_id: saleId, status: 'draft_config' }));
+  }),
+
+  // Edit creator draft — PUT /arts/rwa/fixed-price/sales/:saleId
+  http.put(`${BASE}/rwa/fixed-price/sales/:saleId`, async ({ request, params }) => {
+    await mockDelay();
+    if (shouldInject500(request))
+      return HttpResponse.json({ code: 5000, msg: 'internal error', data: null });
+    const uid = getMockUid(request);
+    if (!uid) return HttpResponse.json({ code: 4001, msg: 'login', data: null });
+    const { saleId } = params as { saleId: string };
+    const body = (await request.json()) as Partial<CreatorFixedPriceSaleBody>;
+    mutateDb((d) => {
+      d.creatorFpSales = d.creatorFpSales ?? [];
+      const idx = d.creatorFpSales.findIndex((s) => s.sale_id === saleId);
+      const existing = d.creatorFpSales[idx];
+      if (idx >= 0 && existing && existing.status === 'draft_config') {
+        d.creatorFpSales[idx] = { ...existing, ...(body as Partial<typeof existing>) };
+      }
+    });
+    return HttpResponse.json(jsonOk({ ok: true }));
+  }),
+
+  // Submit creator draft for admin review — POST /arts/rwa/fixed-price/sales/:saleId/submit
+  http.post(`${BASE}/rwa/fixed-price/sales/:saleId/submit`, async ({ request, params }) => {
+    await mockDelay();
+    if (shouldInject500(request))
+      return HttpResponse.json({ code: 5000, msg: 'internal error', data: null });
+    const uid = getMockUid(request);
+    if (!uid) return HttpResponse.json({ code: 4001, msg: 'login', data: null });
+    const { saleId } = params as { saleId: string };
+    mutateDb((d) => {
+      d.creatorFpSales = d.creatorFpSales ?? [];
+      const sale = d.creatorFpSales.find((s) => s.sale_id === saleId);
+      if (sale && sale.status === 'draft_config') {
+        sale.status = 'submitted';
+      }
+    });
+    return HttpResponse.json(jsonOk({ status: 'submitted' }));
+  }),
+
+  // List creator sales (including drafts) — GET /arts/rwa/fixed-price/sales?work_id=...&creator=true
+  // Note: the existing public handler in investor.ts handles work_id without creator=true.
+  // This handler intercepts creator=true queries and merges drafts with published sales.
+  http.get(`${BASE}/rwa/fixed-price/sales`, async ({ request }) => {
+    await mockDelay();
+    if (shouldInject500(request))
+      return HttpResponse.json({ code: 5000, msg: 'internal error', data: null });
+    const url = new URL(request.url);
+    const workId = Number(url.searchParams.get('work_id'));
+    const isCreator = url.searchParams.get('creator') === 'true';
+    if (!isCreator) return new HttpResponse(null, { status: 404 });
+    const uid = getMockUid(request);
+    if (!uid) return HttpResponse.json({ code: 4001, msg: 'login', data: null });
+    const db = getDb();
+    // published sales from admin-side (match work_id via project lookup)
+    const publishedSales = (db.fixedPriceSales ?? []).filter((s) => {
+      const proj = db.projects.find((p) => p.id === s.project_id);
+      return proj?.work_id === workId || s.project_id === workId;
+    }).map((s) => ({
+      sale_id: String(s.id),
+      project_id: s.project_id,
+      status: s.status,
+      price_usdt_per_token_raw: s.price_usdt_per_token_raw,
+      target_usdt_raw: s.target_usdt_raw,
+      public_bps: 6000,
+      dev_bps: 3000,
+      airdrop_bps: 1000,
+      sale_start_unix: s.sale_start_unix,
+      sale_end_unix: s.sale_end_unix,
+      vesting_start_unix: s.vesting_start_unix,
+      vesting_num_slices: s.vesting_num_slices,
+      vesting_slice_period_sec: s.vesting_slice_period_sec,
+      vesting_percentages_bps_csv: s.vesting_percentages_bps_csv,
+      subscribed_usdt: undefined,
+      created_at: 0,
+    }));
+    // creator drafts
+    const draftSales = (db.creatorFpSales ?? []).filter((s) => s.project_id === workId);
+    return HttpResponse.json(jsonOk([...draftSales, ...publishedSales]));
   }),
 
   http.post(`${BASE}/studio/fixed-price/apply`, async ({ request }) => {

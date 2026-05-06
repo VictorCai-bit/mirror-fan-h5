@@ -281,7 +281,7 @@ export interface FixedPriceApplyRow {
   note?: string;
 }
 
-/** Doc §13.7 */
+/** Doc §13.7 — legacy mock apply (deprecated, kept for compat) */
 export interface FixedPriceApplyBody {
   project_id: number;
   price_usdt_per_token_raw: string;
@@ -293,6 +293,45 @@ export interface FixedPriceApplyBody {
   vesting_percentages_bps_csv: string;
   vesting_start_unix: number;
   note?: string;
+}
+
+/** Creator-side fixed-price sale draft body (POST /arts/rwa/fixed-price/sales) */
+export interface CreatorFixedPriceSaleBody {
+  project_id: number;
+  price_usdt_per_token_raw: string;
+  target_usdt_raw: string;
+  public_bps: number;   // default 6000
+  dev_bps: number;      // default 3000
+  airdrop_bps: number;  // default 1000; sum must = 10000
+  sale_start_unix: number;
+  sale_end_unix: number;
+  vesting_start_unix: number;
+  vesting_num_slices: number;
+  vesting_slice_period_sec: number;
+  vesting_percentages_bps_csv: string; // front N-1, last auto-computed
+  asset_proof_url?: string;
+  is_draft: boolean;
+}
+
+/** Creator-side sale row (includes drafts) */
+export interface CreatorFixedPriceSaleRow {
+  sale_id: string;
+  project_id: number;
+  status: 'draft_config' | 'submitted' | 'published' | 'subscribing' | 'finalized' | 'vesting' | 'done' | 'cancelled';
+  price_usdt_per_token_raw: string;
+  target_usdt_raw: string;
+  public_bps: number;
+  dev_bps: number;
+  airdrop_bps: number;
+  sale_start_unix: number;
+  sale_end_unix: number;
+  vesting_start_unix: number;
+  vesting_num_slices: number;
+  vesting_slice_period_sec: number;
+  vesting_percentages_bps_csv: string;
+  asset_proof_url?: string;
+  subscribed_usdt?: string;
+  created_at: number;
 }
 
 /** Doc §13.3 #41 */

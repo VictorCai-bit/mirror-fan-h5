@@ -1,6 +1,7 @@
 import type {
   AdminFixedPriceSaleRow,
   BillRow,
+  CreatorFixedPriceSaleRow,
   FixedPriceApplyRow,
   FixedPriceOrderRow,
   LaunchAirdropPhasePublicRow,
@@ -45,6 +46,8 @@ export interface MockDb {
   fixedPriceSales: AdminFixedPriceSaleRow[];
   fixedPriceOrders: Record<string, FixedPriceOrderRow[]>; // key saleId_uid
   fixedPriceApplies: FixedPriceApplyRow[];
+  /** Creator-side draft/submitted fixed-price sales (S11 wizard) */
+  creatorFpSales: CreatorFixedPriceSaleRow[];
   vestingByUid: Record<string, UserVestingEntry[]>;
   billsByUid: Record<string, BillRow[]>;
   creatorBillsByUid: Record<string, BillRow[]>;
@@ -78,6 +81,7 @@ export function createInitialDb(): MockDb {
     fixedPriceSales: seedFixedPriceSales(),
     fixedPriceOrders: {},
     fixedPriceApplies: [],
+    creatorFpSales: [],
     vestingByUid: {
       [uidRich]: seedVestingRich(),
     },
