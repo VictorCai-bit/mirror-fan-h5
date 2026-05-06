@@ -65,7 +65,7 @@ export default function StudioHome() {
     return formatUsdtFromRaw(sum.toString(), locale);
   }, [allProjects, locale]);
   const vaultAvailable = vault ? formatUsdtFromRaw(vault.available_raw, locale) : formatUsdtFromRaw('0', locale);
-  const firstOnChain = allProjects.find((p) => FILTER_MATCH.live(p.status));
+
 
   const setFilter = (f: FilterKey) => {
     if (f === 'all') {
@@ -134,16 +134,6 @@ export default function StudioHome() {
             <Receipt className="size-4 text-accent-500" />
             {t('studio.bills')}
           </button>
-          {firstOnChain && (
-            <button
-              type="button"
-              onClick={() => nav(`/studio/project/${firstOnChain.id}/reconcile`)}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-surface py-2.5 text-xs font-medium text-text-secondary hover:bg-white/10"
-            >
-              <FileText className="size-4 text-accent-500" />
-              {t('studioHome.reconcile')}
-            </button>
-          )}
         </div>
 
         <div className="mx-3 mb-3 flex gap-1.5 overflow-x-auto">
