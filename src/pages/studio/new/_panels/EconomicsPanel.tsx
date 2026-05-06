@@ -136,11 +136,6 @@ export function EconomicsPanel({ value, onChange, disabled }: EconomicsPanelProp
             <Stat label={t('studio.preview.devFund')} value={preview.dev_fund_pool.toLocaleString()} />
             <Stat label={t('studio.preview.migrate')} value={`$${preview.expected_migrate_usdt.toLocaleString()}`} />
           </div>
-          <div className="mt-2 grid grid-cols-3 gap-2 border-t border-white/10 pt-2 text-[10px] text-text-secondary">
-            <span>α {preview.alpha}</span>
-            <span>β {preview.beta}</span>
-            <span>{t('studioWizard.step2FeeBps')} 100</span>
-          </div>
         </div>
       ) : (
         <p className="text-center text-xs text-text-secondary">{t('common.loading')}</p>
