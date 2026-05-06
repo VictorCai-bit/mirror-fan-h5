@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { ApiError, apiFetch } from '@/lib/api';
 import { cn } from '@/lib/cn';
-import { formatPoints, formatTokenFromRaw } from '@/lib/fmt';
+import { formatPoints } from '@/lib/fmt';
 import type { PositionSummary, UserVestingEntry } from '@/types/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowDown, ArrowRight, Coins, Sparkles, TrendingUp, Wallet } from 'lucide-react';
