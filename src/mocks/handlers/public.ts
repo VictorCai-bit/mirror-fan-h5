@@ -196,8 +196,46 @@ export const publicHandlers = [
     await mockDelay();
     if (shouldInject500(request))
       return HttpResponse.json({ code: 5000, msg: 'internal error', data: null });
-    const workId = Number(new URL(request.url).searchParams.get('work_id'));
-    const rows = getDb().fixedPriceSales.filter((s) => s.work_id === workId);
+    const url = new URL(request.url);
+    const workId = Number(url.searchParams.get('work_id'));
+    const isCreator = url.searchParams.get('creator') === 'true';
+
+    const db = getDb();
+
+    if (isCreator) {
+      // Return creator-formatted rows (with sale_id) + draft sales
+      const publishedSales = db.fixedPriceSales
+        .filter((s) => {
+          const proj = db.projects.find((p) => p.id === s.project_id);
+          return proj?.work_id === workId || s.project_id === workId || s.work_id === workId;
+        })
+        .map((s) => ({
+          sale_id: String(s.id),
+          project_id: s.project_id,
+          status: s.status,
+          price_usdt_per_token_raw: s.price_usdt_per_token_raw,
+          target_usdt_raw: s.target_usdt_raw,
+          public_bps: 6000,
+          dev_bps: 3000,
+          airdrop_bps: 1000,
+          sale_start_unix: s.sale_start_unix,
+          sale_end_unix: s.sale_end_unix,
+          vesting_start_unix: s.vesting_start_unix,
+          vesting_num_slices: s.vesting_num_slices,
+          vesting_slice_period_sec: s.vesting_slice_period_sec,
+          vesting_percentages_bps_csv: s.vesting_percentages_bps_csv,
+          subscribed_usdt: undefined as string | undefined,
+          asset_proof_url: undefined as string | undefined,
+          created_at: s.sale_start_unix > 0 ? s.sale_start_unix : Math.floor(Date.now() / 1000),
+        }));
+      const draftSales = (db.creatorFpSales ?? []).filter(
+        (s) => s.project_id === workId,
+      );
+      return HttpResponse.json(jsonOk([...draftSales, ...publishedSales]));
+    }
+
+    // Investor/public: return AdminFixedPriceSaleRow list
+    const rows = db.fixedPriceSales.filter((s) => s.work_id === workId || s.project_id === workId);
     return HttpResponse.json(jsonOk(rows));
   }),
 
