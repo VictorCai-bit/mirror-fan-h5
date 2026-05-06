@@ -605,9 +605,6 @@ export const creatorHandlers = [
     await mockDelay();
     if (shouldInject500(request))
       return HttpResponse.json({ code: 5000, msg: 'internal error', data: null });
-    if (getMockRole(request) !== 'admin') {
-      return HttpResponse.json({ code: 4030, msg: 'admin only', data: null });
-    }
     const id = Number(params.id);
     if (!assertCreator(request, id)) return HttpResponse.json({ code: 4003, msg: 'forbidden', data: null });
     return HttpResponse.json(jsonOk({ tx_signature: nanoid(), released_raw: '1000000000' }));
