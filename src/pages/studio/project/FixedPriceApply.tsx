@@ -16,6 +16,7 @@ import {
   Clock,
   FileText,
   Info,
+  Lock,
   Plus,
   TrendingUp,
 } from 'lucide-react';
@@ -529,7 +530,6 @@ function WizardView({
           priceDisplay={priceDisplay}
           targetDisplay={targetDisplay}
           locale={locale}
-          onSetForm={onSetForm}
           onSetPrice={onSetPrice}
           onSetTarget={onSetTarget}
         />
@@ -592,12 +592,18 @@ function WizardView({
 
 /* ── Step 1 ───────────────────────────────────────────────────────────── */
 
+/* Fixed allocation — protocol-level, not configurable by creator */
+const FIXED_ALLOC = [
+  { key: 'allocPublic',  bps: 6000, color: 'bg-accent-500',  textColor: 'text-accent-400' },
+  { key: 'allocDev',     bps: 3000, color: 'bg-info-500',    textColor: 'text-info-400' },
+  { key: 'allocAirdrop', bps: 1000, color: 'bg-success-500', textColor: 'text-success-400' },
+] as const;
+
 function Step1({
   form,
   priceDisplay,
   targetDisplay,
   locale,
-  onSetForm,
   onSetPrice,
   onSetTarget,
 }: {
@@ -605,7 +611,6 @@ function Step1({
   priceDisplay: string;
   targetDisplay: string;
   locale: string;
-  onSetForm: (p: Partial<CreatorFixedPriceSaleBody>) => void;
   onSetPrice: (v: string) => void;
   onSetTarget: (v: string) => void;
 }) {
@@ -614,18 +619,8 @@ function Step1({
   const alloc = computeAllocations(
     form.target_usdt_raw,
     form.price_usdt_per_token_raw,
-    form.public_bps,
-    form.dev_bps,
-    form.airdrop_bps,
+    6000, 3000, 1000,
   );
-
-  const bpsSum = form.public_bps + form.dev_bps + form.airdrop_bps;
-
-  const setPublicBps = (v: number) => {
-    const clamped = Math.max(0, Math.min(9800, v));
-    const remaining = 10000 - clamped - form.airdrop_bps;
-    onSetForm({ public_bps: clamped, dev_bps: Math.max(0, remaining) });
-  };
 
   return (
     <div className="flex flex-col gap-3">
@@ -673,42 +668,35 @@ function Step1({
         </FormRow>
       </FormCard>
 
-      {/* allocation sliders */}
-      <FormCard>
-        <div className="col-span-2 flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] font-semibold text-text-secondary">{t('studio2.fp.alloc')}</p>
-            {bpsSum !== 10000 && (
-              <p className="text-[10px] text-danger-400">{t('studio2.fp.allocMismatch')}</p>
-            )}
-          </div>
-
-          <AllocRow
-            label={t('studio2.fp.allocPublic')}
-            bps={form.public_bps}
-            color="bg-accent-500"
-            onChange={setPublicBps}
-          />
-          <AllocRow
-            label={t('studio2.fp.allocDev')}
-            bps={form.dev_bps}
-            color="bg-info-500"
-            readonly
-          />
-          <AllocRow
-            label={t('studio2.fp.allocAirdrop')}
-            bps={form.airdrop_bps}
-            color="bg-success-500"
-            onChange={(v) => {
-              const clamped = Math.max(0, Math.min(9800, v));
-              const remaining = 10000 - clamped - form.public_bps;
-              onSetForm({ airdrop_bps: clamped, dev_bps: Math.max(0, remaining) });
-            }}
-          />
+      {/* fixed allocation — read-only */}
+      <div className="rounded-2xl bg-surface p-3 ring-1 ring-white/10">
+        <div className="mb-3 flex items-center gap-1.5">
+          <Lock className="size-3 text-text-secondary/60" />
+          <p className="text-[11px] font-semibold text-text-secondary">{t('studio2.fp.alloc')}</p>
+          <span className="ml-auto text-[10px] text-text-secondary/50">{t('studio2.fp.allocFixed')}</span>
         </div>
-      </FormCard>
 
-      {/* preview */}
+        {/* proportion bar */}
+        <div className="mb-3 flex h-2 w-full overflow-hidden rounded-full">
+          {FIXED_ALLOC.map((a) => (
+            <div key={a.key} className={cn('h-full', a.color)} style={{ width: `${a.bps / 100}%` }} />
+          ))}
+        </div>
+
+        <div className="flex flex-col gap-2">
+          {FIXED_ALLOC.map((a) => (
+            <div key={a.key} className="flex items-center gap-2">
+              <div className={cn('size-2 shrink-0 rounded-full', a.color)} />
+              <span className="flex-1 text-[11px] text-text-secondary">{t(`studio2.fp.${a.key}`)}</span>
+              <span className={cn('font-mono text-sm font-bold tabular-nums', a.textColor)}>
+                {a.bps / 100}%
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* token allocation preview */}
       {alloc && (
         <div className="rounded-2xl bg-black/20 p-3 ring-1 ring-white/8">
           <div className="mb-2 flex items-center gap-1.5">
@@ -1020,10 +1008,7 @@ function validateStep(
     const targetUsdt = Number(form.target_usdt_raw) / 1_000_000;
     if (targetUsdt < MIN_TARGET_USDT)
       return t('fixedPriceApply.err.targetTooLow', { min: MIN_TARGET_USDT.toLocaleString() });
-    const bpsSum = form.public_bps + form.dev_bps + form.airdrop_bps;
-    if (bpsSum !== 10000) return t('studio2.fp.allocMismatch');
-    if (form.public_bps <= 0 || form.dev_bps <= 0 || form.airdrop_bps <= 0)
-      return t('studio2.fp.allocZero');
+    // allocation is protocol-fixed 60/30/10, no validation needed
   }
   if (step === 2) {
     if (!form.sale_start_unix) return t('fixedPriceApply.err.pickSaleStart');
@@ -1069,50 +1054,6 @@ function FormRow({ label, children }: { label: string; children: React.ReactNode
   );
 }
 
-function AllocRow({
-  label,
-  bps,
-  color,
-  readonly,
-  onChange,
-}: {
-  label: string;
-  bps: number;
-  color: string;
-  readonly?: boolean;
-  onChange?: (v: number) => void;
-}) {
-  const pct = (bps / 100).toFixed(0);
-  return (
-    <div className="flex items-center gap-2">
-      <span className="w-20 shrink-0 text-[11px] text-text-secondary">{label}</span>
-      {readonly ? (
-        <div className="flex flex-1 items-center gap-2">
-          <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
-            <div className={cn('h-full rounded-full', color)} style={{ width: `${pct}%` }} />
-          </div>
-          <span className="w-8 text-right font-mono text-[11px] text-text-secondary tabular-nums">
-            {pct}%
-          </span>
-        </div>
-      ) : (
-        <div className="flex flex-1 items-center gap-2">
-          <input
-            type="range"
-            min={1}
-            max={98}
-            value={bps / 100}
-            onChange={(e) => onChange?.(Number(e.target.value) * 100)}
-            className="flex-1 accent-accent-500"
-          />
-          <span className="w-8 text-right font-mono text-[11px] tabular-nums text-text-primary">
-            {pct}%
-          </span>
-        </div>
-      )}
-    </div>
-  );
-}
 
 function DateInput({
   value,
