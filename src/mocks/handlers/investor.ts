@@ -340,6 +340,19 @@ export const investorHandlers = [
     return HttpResponse.json(jsonOk([]));
   }),
 
+  http.get(`${BASE}/rwa/my/position`, async ({ request }) => {
+    await mockDelay();
+    const uid = requireUid(request);
+    if (!uid) return HttpResponse.json({ code: 4001, msg: 'login', data: null });
+    const pid = Number(new URL(request.url).searchParams.get('project_id') ?? 0);
+    const posMap: Record<number, object> = {
+      1001: { project_id: 1001, symbol: 'HSHW', work_id: 1001, token_balance_raw: '9090900000', usdt_spent_raw: '100000000', pending_unlock_raw: '500000000' },
+      1003: { project_id: 1003, symbol: 'MUSE', work_id: 1003, token_balance_raw: '1000000000', usdt_spent_raw: '50000000', pending_unlock_raw: '0' },
+      1005: { project_id: 1005, symbol: 'DREAM', work_id: 1005, token_balance_raw: '200000000', usdt_spent_raw: '20000000', pending_unlock_raw: '100000000' },
+    };
+    return HttpResponse.json(jsonOk(posMap[pid] ?? null));
+  }),
+
   http.get(`${BASE}/rwa/my/vesting`, async ({ request }) => {
     await mockDelay();
     if (shouldInject500(request))
