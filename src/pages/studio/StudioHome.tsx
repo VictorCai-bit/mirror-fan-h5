@@ -66,6 +66,7 @@ export default function StudioHome() {
   }, [allProjects, locale]);
   const vaultAvailable = vault ? formatUsdtFromRaw(vault.available_raw, locale) : formatUsdtFromRaw('0', locale);
   const firstOnChain = allProjects.find((p) => FILTER_MATCH.live(p.status));
+  const liveProjects = useMemo(() => allProjects.filter((p) => FILTER_MATCH.live(p.status)), [allProjects]);
 
   const setFilter = (f: FilterKey) => {
     if (f === 'all') {
@@ -115,16 +116,35 @@ export default function StudioHome() {
               <p className="mt-0.5 font-mono text-lg font-bold text-success-500">{vaultAvailable}</p>
             </div>
           </div>
-          {firstOnChain ? (
+          {liveProjects.length === 1 ? (
             <button
               type="button"
-              onClick={() => nav(`/studio/project/${firstOnChain.id}/vault`)}
+              onClick={() => nav(`/studio/project/${liveProjects[0].id}/vault`)}
               className="mt-3 flex w-full items-center justify-center gap-1 rounded-xl bg-white/10 py-2 text-xs font-medium text-text-primary hover:bg-white/15"
             >
               <VaultIcon className="size-3.5" />
               {t('studioHome.viewVault')}
               <ChevronRight className="size-3.5" />
             </button>
+          ) : liveProjects.length > 1 ? (
+            <div className="mt-3 space-y-1.5">
+              <p className="text-[10px] text-text-secondary/70 px-0.5">{t('studioHome.viewVault')}</p>
+              {liveProjects.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => nav(`/studio/project/${p.id}/vault`)}
+                  className="flex w-full items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-medium text-text-primary hover:bg-white/15"
+                >
+                  <VaultIcon className="size-3.5 shrink-0 text-success-400" />
+                  <span className="flex-1 truncate text-left">
+                    {p.name || p.symbol || `#${p.id}`}
+                  </span>
+                  <span className="font-mono text-[10px] text-text-secondary/60">{p.symbol}</span>
+                  <ChevronRight className="size-3.5 shrink-0 text-text-secondary/50" />
+                </button>
+              ))}
+            </div>
           ) : null}
         </div>
 
