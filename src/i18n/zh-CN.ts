@@ -170,7 +170,7 @@ export default {
     airdrop: {
       title: '首发空投规则',
       poolLabel: '空投池占比',
-      poolHint: '协议固定为总发行量的 10%，以 {{unit}} 积分形式逐步释放给早期参与者',
+      poolHint: '协议固定总量，以 {{unit}} 积分形式逐步释放给早期参与者',
       rewardsTitle: '每日积分奖励（协议固定）',
       signIn: '每日签到',
       invite: '邀请新用户签到',

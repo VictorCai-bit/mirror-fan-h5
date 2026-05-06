@@ -57,7 +57,9 @@ export function AirdropPanel({ symbol }: AirdropPanelProps) {
       <div className="rounded-2xl bg-surface p-3 ring-1 ring-white/10">
         <div className="mb-1 flex items-center justify-between">
           <p className="text-[11px] text-text-secondary">{t('studio.airdrop.poolLabel')}</p>
-          <span className="font-mono text-sm font-bold text-success-400">10%</span>
+          <span className="font-mono text-sm font-bold text-success-400">
+            10,000,000 <span className="text-[10px] font-normal opacity-70">{unit}</span>
+          </span>
         </div>
         <p className="text-[10px] text-text-secondary/60">
           {t('studio.airdrop.poolHint', { unit })}

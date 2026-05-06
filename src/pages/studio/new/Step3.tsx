@@ -18,7 +18,7 @@ function buildDefaultPhase() {
     invite_daily_cap: 0,           // unlimited
     team_per_day_amount: 3,
     team_daily_cap: 0,             // unlimited
-    total_points_cap: 0,           // backend computes from 10% pool
+    total_points_cap: 10_000_000,  // protocol-fixed
   };
 }
 

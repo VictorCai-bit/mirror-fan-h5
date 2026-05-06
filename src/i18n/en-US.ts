@@ -170,7 +170,7 @@ export default {
     airdrop: {
       title: 'Launch Airdrop Rules',
       poolLabel: 'Airdrop Pool',
-      poolHint: 'Protocol-fixed at 10% of total token supply, distributed as {{unit}} points to early participants',
+      poolHint: 'Protocol-fixed supply, distributed as {{unit}} points to early participants',
       rewardsTitle: 'Daily Point Rewards (protocol-fixed)',
       signIn: 'Daily check-in',
       invite: 'Invite a new user to check in',
