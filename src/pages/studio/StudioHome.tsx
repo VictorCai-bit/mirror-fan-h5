@@ -116,10 +116,10 @@ export default function StudioHome() {
               <p className="mt-0.5 font-mono text-lg font-bold text-success-500">{vaultAvailable}</p>
             </div>
           </div>
-          {liveProjects.length === 1 ? (
+          {liveProjects.length === 1 && liveProjects[0] ? (
             <button
               type="button"
-              onClick={() => nav(`/studio/project/${liveProjects[0].id}/vault`)}
+              onClick={() => nav(`/studio/project/${liveProjects[0]!.id}/vault`)}
               className="mt-3 flex w-full items-center justify-center gap-1 rounded-xl bg-white/10 py-2 text-xs font-medium text-text-primary hover:bg-white/15"
             >
               <VaultIcon className="size-3.5" />

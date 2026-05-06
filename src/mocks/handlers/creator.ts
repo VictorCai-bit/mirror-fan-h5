@@ -3,7 +3,6 @@ import { getDb, mutateDb } from '@/mocks/db';
 import type { CreatorFixedPriceSaleBody, FixedPriceApplyBody, PhaseDraft, RwaProject } from '@/types/api';
 import {
   getCreatorOf,
-  getMockRole,
   getMockUid,
   jsonOk,
   mockDelay,
