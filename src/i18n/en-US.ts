@@ -614,7 +614,7 @@ export default {
       typeOther: 'Other',
     },
     fp: {
-      title: 'Fixed-Price Issuance',
+      title: 'Fixed-Price',
       newIssuance: 'New Issuance',
       wizardTitle: 'Fixed-Price Wizard',
       step1Title: 'Step 1 · Issuance Params',

@@ -237,7 +237,7 @@ function useStatusActions(p: RwaProject): StatusAction[] {
       return [
         { key: t('studio.milestone'), icon: <CheckCircle2 className="size-3.5" />, route: `${base}/milestone`, variant: 'secondary' },
         { key: t('studio.reconcile'), icon: <FileText className="size-3.5" />, route: `${base}/reconcile`, variant: 'secondary' },
-        { key: t('fp.subscribe'), icon: <Tag className="size-3.5" />, route: `${base}/fixed-price`, variant: 'secondary' },
+        { key: t('studio2.fp.title'), icon: <Tag className="size-3.5" />, route: `${base}/fixed-price`, variant: 'secondary' },
         { key: t('studio.vault'), icon: <VaultIcon className="size-3.5" />, route: `${base}/vault`, variant: 'success' },
       ];
     default:

@@ -608,7 +608,7 @@ export default {
       typeOther: '其他',
     },
     fp: {
-      title: '固定价增发配置',
+      title: '固定价增发',
       newIssuance: '新建增发',
       wizardTitle: '固定价增发向导',
       step1Title: 'Step 1 · 增发基本参数',
